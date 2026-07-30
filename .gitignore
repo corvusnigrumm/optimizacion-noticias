@@ -1,0 +1,26 @@
+# Secretos y variables de entorno (CRÍTICO)
+.env
+
+# Python y caché
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.spec
+
+# Archivos de salida y datos temporales
+output/
+tmp/
+scratch/
+
+# IDE y SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

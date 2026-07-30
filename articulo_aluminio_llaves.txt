@@ -1,0 +1,78 @@
+¿Por qué debería envolver en aluminio la llave de su carro y su billetera? El sencillo truco que ayuda a reducir el riesgo de ataques electrónicos
+Este método puede bloquear señales inalámbricas, aunque los expertos insisten en que debe usarse como una medida complementaria.
+Aluminio
+Foto ilustrativa de Gemini Foto: Gemini
+
+Link
+Alt thumbnail
+María Paula Lozano Moreno
+PERIODISTA
+27.07.2026 17:07
+Actualizado: 27.07.2026 17:07
+
+
+Compartir
+
+
+Guardar
+
+
+Reportar
+
+
+Resumen
+
+
+Escuchar
+
+
+Comentar
+
+Envolver la llave inteligente del carro o incluso la billetera con papel de aluminio puede parecer una recomendación exagerada. Sin embargo, detrás de esta práctica existe una explicación relacionada con la seguridad de algunos dispositivos que utilizan señales inalámbricas, como las llaves con acceso sin contacto y las tarjetas bancarias con tecnología de pago por aproximación.
+LEA TAMBIÉN
+
+Sic adviertió a los consumidores sobre estos productos
+Sic emite alerta por termos y baterías portátiles de reconocidas marcas por riesgo de incendio y quemaduras: ¿qué hacer si tiene uno?
+Pamela Avendaño Parra
+
+Aunque no se trata de una solución definitiva, especialistas en seguridad consideran que el aluminio puede aportar una capa adicional de protección frente a determinadas modalidades de fraude tecnológico. La clave está en su capacidad para dificultar la transmisión de señales electromagnéticas cuando el objeto queda completamente cubierto.
+¿Cómo funciona este método?
+Las llaves inteligentes de muchos vehículos modernos emiten una señal de radio que permite abrir las puertas o encender el motor sin necesidad de introducir una llave física. Esa comodidad también ha dado paso a nuevas modalidades de robo.
+Llaves
+Las llaves inteligentes son más vulnerables a ciertos ataques electrónicos. Foto:iStock
+
+Una de las más conocidas es el llamado relay attack o ataque de retransmisión. En este caso, los delincuentes utilizan equipos capaces de captar y amplificar la señal que emite la llave desde el interior de una vivienda para hacer creer al vehículo que el propietario se encuentra cerca. 
+De esa forma, pueden desbloquear el automóvil e, incluso, ponerlo en marcha en algunos modelos.
+LEA TAMBIÉN
+
+Un truco de limpieza para su inodoro.
+Echar vinagre blanco al inodoro: un gran truco que funciona bien si lo aplica de manera correcta
+Camila Sánchez Fajardo
+
+Al envolver completamente la llave con papel de aluminio, el material actúa de manera similar a una jaula de Faraday, lo que ayuda a bloquear o debilitar la señal inalámbrica. Para que tenga mayores posibilidades de funcionar, la cobertura debe ser total, sin espacios por donde pueda escapar la frecuencia.
+También puede proteger las tarjetas bancarias
+El mismo principio aplica para las tarjetas con tecnología RFID o NFC, utilizadas para realizar pagos sin contacto. Al quedar envueltas en aluminio, resulta más difícil que otros dispositivos puedan detectar o leer esa señal de proximidad sin autorización.
+Tarjetas
+Las tarjetas con pago sin contacto también pueden protegerse con barreras físicas. Foto:iStock
+
+Un estudio realizado por investigadores de la Technological University Dublin y la University College Dublin demostró que, aunque el alcance habitual de la tecnología NFC es de apenas unos centímetros, es posible retransmitir esa comunicación mediante dispositivos electrónicos y ejecutar transacciones fraudulentas en cuestión de segundos. Los investigadores concluyeron que bloquear físicamente la señal reduce la posibilidad de este tipo de ataques.
+No reemplaza otras medidas de seguridad
+Pese a su utilidad como barrera física, los expertos coinciden en que el papel de aluminio no debe considerarse una protección absoluta. 
+LEA TAMBIÉN
+
+Cómo acabar con las cucarachas.
+Ni ácido ni bicarbonato: las opciones efectivas para eliminar las cucarachas de la cocina y el baño
+Camila Sánchez Fajardo
+
+Moshe Shlisel, director general de GuardKnox Cyber Technologies, explicó a la BBC que envolver la llave crea una barrera que dificulta que las ondas sean captadas o retransmitted por terceros, aunque aclaró que “no es la solución ideal”, sino una alternativa rápida y económica mientras la industria desarrolla sistemas más seguros.
+Por esa razón, las recomendaciones incluyen complementar este método con otras medidas, como guardar las llaves lejos de puertas y ventanas, utilizar fundas con bloqueo RFID o Faraday cuando sea necesario y mantenerse atento a posibles actividades sospechosas relacionadas con dispositivos electrónicos. 
+Robos digitales
+Proteger dispositivos inalámbricos puede reducir el riesgo de algunos fraudes tecnológicos. Foto:iStock
+
+De esta manera, es posible reducir los riesgos sin depender de una única estrategia de protección.
+Más noticias en El Tiempo
+¿Para qué sirven los huecos en los ganchos de la ropa? La función poco conocida que ayuda a reducir arrugas y cuidar las prendas
+¿Cómo hacer queso crema casero con solo tres ingredientes y en pocos minutos? La receta para lograr una textura suave y saludable
+Alquilaron un Airbnb y encontraron una foto de su propia familia de hace 10 años colgada en la pared: '¿Un fallo en la matrix?'
+MARÍA PAULA LOZANO
+REDACCIÓN ALCANCE DIGITAL
