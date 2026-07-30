@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: optimizacion-noticias
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app_web:app --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: GROQ_API_KEY
+        sync: false
+      - key: HF_TOKEN
+        sync: false
