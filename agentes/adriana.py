@@ -40,14 +40,26 @@ class Adriana:
         )
         
         try:
-            response = self.client.chat.completions.create(
+            print("\n[Adriana] Ensamblando markdown: ", end="", flush=True)
+            completion = self.client.chat.completions.create(
+                model="qwen/qwen3.6-27b",
                 messages=[
                     {"role": "system", "content": self.system_instruction},
                     {"role": "user", "content": prompt}
                 ],
-                model=self.model_name
+                temperature=0.6,
+                max_completion_tokens=2048,
+                top_p=0.95,
+                reasoning_effort="default",
+                stream=True,
+                stop=None
             )
-            markdown_final = response.choices[0].message.content
+            markdown_final = ""
+            for chunk in completion:
+                chunk_text = chunk.choices[0].delta.content or ""
+                print(chunk_text, end="", flush=True)
+                markdown_final += chunk_text
+            print()
             print("[Adriana] ✅ ¡Markdown ensamblado con éxito!")
             return markdown_final
         except Exception as e:

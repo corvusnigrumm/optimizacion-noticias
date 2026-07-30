@@ -47,16 +47,44 @@ class Valentina:
 
     def _extraer_frases(self, client, model, texto_crudo, extra_kwargs=None):
         kwargs = extra_kwargs or {}
-        response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": self.system_instruction},
-                {"role": "user", "content": f"Texto de la noticia:\n\n{texto_crudo}"}
-            ],
-            model=model,
-            response_format={"type": "json_object"},
-            **kwargs
-        )
-        content = response.choices[0].message.content
+        if client == self.client:
+            print("\n[Valentina] Generando respuesta: ", end="", flush=True)
+            completion = client.chat.completions.create(
+                model="qwen/qwen3.6-27b",
+                messages=[
+                    {"role": "system", "content": self.system_instruction},
+                    {"role": "user", "content": f"Texto de la noticia:\n\n{texto_crudo}"}
+                ],
+                temperature=0.6,
+                max_completion_tokens=2048,
+                top_p=0.95,
+                reasoning_effort="default",
+                stream=True,
+                stop=None
+            )
+            content = ""
+            for chunk in completion:
+                chunk_text = chunk.choices[0].delta.content or ""
+                print(chunk_text, end="", flush=True)
+                content += chunk_text
+            print()
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content.replace("```json", "", 1)
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+        else:
+            response = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": self.system_instruction},
+                    {"role": "user", "content": f"Texto de la noticia:\n\n{texto_crudo}"}
+                ],
+                model=model,
+                response_format={"type": "json_object"},
+                **kwargs
+            )
+            content = response.choices[0].message.content
         data = json.loads(content)
         return data.get("frases", [])
 

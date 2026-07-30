@@ -50,15 +50,33 @@ class Pipe:
         )
         fallback = ["noticias colombia", "bogota hoy", "colombia actualidad", "noticias bogota"]
         try:
-            response = self.client.chat.completions.create(
+            print("\n[Pipe] Generando keywords: ", end="", flush=True)
+            completion = self.client.chat.completions.create(
+                model="qwen/qwen3.6-27b",
                 messages=[
                     {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado."},
                     {"role": "user", "content": prompt}
                 ],
-                model=self.model_name,
-                response_format={"type": "json_object"}
+                temperature=0.6,
+                max_completion_tokens=2048,
+                top_p=0.95,
+                reasoning_effort="default",
+                stream=True,
+                stop=None
             )
-            data = json.loads(response.choices[0].message.content)
+            content = ""
+            for chunk in completion:
+                chunk_text = chunk.choices[0].delta.content or ""
+                print(chunk_text, end="", flush=True)
+                content += chunk_text
+            print()
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content.replace("```json", "", 1)
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+            data = json.loads(content)
             keywords = data.get("keywords", fallback)
             if not isinstance(keywords, list) or len(keywords) == 0:
                 keywords = fallback
@@ -102,15 +120,33 @@ class Pipe:
     def _llamar_llm_candidatos(self, prompt):
         """Llama al LLM principal o al fallback de HF para obtener tags candidatos."""
         try:
-            response = self.client.chat.completions.create(
+            print("\n[Pipe] Generando candidatos: ", end="", flush=True)
+            completion = self.client.chat.completions.create(
+                model="qwen/qwen3.6-27b",
                 messages=[
                     {"role": "system", "content": self.system_instruction},
                     {"role": "user", "content": prompt}
                 ],
-                model=self.model_name,
-                response_format={"type": "json_object"}
+                temperature=0.6,
+                max_completion_tokens=2048,
+                top_p=0.95,
+                reasoning_effort="default",
+                stream=True,
+                stop=None
             )
-            data = json.loads(response.choices[0].message.content)
+            content = ""
+            for chunk in completion:
+                chunk_text = chunk.choices[0].delta.content or ""
+                print(chunk_text, end="", flush=True)
+                content += chunk_text
+            print()
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content.replace("```json", "", 1)
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+            data = json.loads(content)
             return self._normalizar_tags(data.get("tags", []))
         except Exception as e:
             if "RateLimitError" in type(e).__name__ or "429" in str(e):
