@@ -1,6 +1,7 @@
 from groq import Groq
 import os
 import json
+import re
 from huggingface_hub import InferenceClient
 
 class Valentina:
@@ -37,12 +38,15 @@ class Valentina:
         )
 
     def _aplicar_negrillas(self, texto_original, frases):
-        """Envuelve las frases exactas en ** dentro del texto original."""
+        """Envuelve las frases exactas en ** dentro del texto original usando regex tolerante."""
         texto_resultado = texto_original
         for frase in frases:
             frase = frase.strip()
-            if frase and frase in texto_resultado:
-                texto_resultado = texto_resultado.replace(frase, f"**{frase}**", 1)
+            if frase:
+                # Escape para regex y permitir espacios variables/saltos de línea
+                escaped = re.escape(frase).replace(r'\ ', r'\s+')
+                # Reemplazar la primera ocurrencia ignorando mayúsculas/minúsculas
+                texto_resultado = re.sub(f'({escaped})', r'**\1**', texto_resultado, count=1, flags=re.IGNORECASE)
         return texto_resultado
 
     def _extraer_frases(self, client, model, texto_crudo, extra_kwargs=None):
@@ -68,12 +72,15 @@ class Valentina:
                 print(chunk_text, end="", flush=True)
                 content += chunk_text
             print()
-            content = content.strip()
-            if content.startswith("```json"):
-                content = content.replace("```json", "", 1)
-            if content.endswith("```"):
-                content = content[:-3]
-            content = content.strip()
+            
+            # Limpiar bloque <think>
+            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
+            
+            # Extraer solo el bloque JSON
+            match = re.search(r'\{[\s\S]*\}', content)
+            if match:
+                content = match.group(0)
+            
         else:
             response = client.chat.completions.create(
                 messages=[
@@ -85,8 +92,13 @@ class Valentina:
                 **kwargs
             )
             content = response.choices[0].message.content
-        data = json.loads(content)
-        return data.get("frases", [])
+            
+        try:
+            data = json.loads(content)
+            return data.get("frases", [])
+        except json.JSONDecodeError as e:
+            print(f"[Valentina] ❌ Error decodificando JSON: {e}")
+            return []
 
     def optimizar_texto(self, texto_crudo):
         print("[Valentina] ✍️ Identificando frases clave para resaltar...")

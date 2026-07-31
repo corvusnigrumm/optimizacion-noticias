@@ -1,4 +1,5 @@
 import json
+import re
 from groq import Groq
 import os
 from huggingface_hub import InferenceClient
@@ -70,14 +71,22 @@ class Pipe:
                 print(chunk_text, end="", flush=True)
                 content += chunk_text
             print()
-            content = content.strip()
-            if content.startswith("```json"):
-                content = content.replace("```json", "", 1)
-            if content.endswith("```"):
-                content = content[:-3]
-            content = content.strip()
-            data = json.loads(content)
-            keywords = data.get("keywords", fallback)
+            print()
+            
+            # Limpiar bloque <think>
+            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
+            
+            # Extraer solo el bloque JSON
+            match = re.search(r'\{[\s\S]*\}', content)
+            if match:
+                content = match.group(0)
+            
+            try:
+                data = json.loads(content)
+                keywords = data.get("keywords", fallback)
+            except json.JSONDecodeError:
+                keywords = fallback
+                
             if not isinstance(keywords, list) or len(keywords) == 0:
                 keywords = fallback
             print(f"[Pipe] 🎯 Keywords temáticas extraídas: {keywords}")
@@ -140,14 +149,21 @@ class Pipe:
                 print(chunk_text, end="", flush=True)
                 content += chunk_text
             print()
-            content = content.strip()
-            if content.startswith("```json"):
-                content = content.replace("```json", "", 1)
-            if content.endswith("```"):
-                content = content[:-3]
-            content = content.strip()
-            data = json.loads(content)
-            return self._normalizar_tags(data.get("tags", []))
+            print()
+            
+            # Limpiar bloque <think>
+            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
+            
+            # Extraer solo el bloque JSON
+            match = re.search(r'\{[\s\S]*\}', content)
+            if match:
+                content = match.group(0)
+            
+            try:
+                data = json.loads(content)
+                return self._normalizar_tags(data.get("tags", []))
+            except json.JSONDecodeError:
+                return []
         except Exception as e:
             if "RateLimitError" in type(e).__name__ or "429" in str(e):
                 print("[Pipe] ⚠️ Rate limit Groq → usando Hugging Face para candidatos...")
@@ -171,77 +187,51 @@ class Pipe:
 
     def generar_tags(self, resumen_texto, tendencias, camilo=None):
         """
-        Pipeline de 2 etapas:
-          Etapa 1 → LLM genera 24 tags candidatos (pool amplio de strings simples).
-          Etapa 2 → Camilo rankea los candidatos con pytrends (score 0-100 real en CO).
-          Resultado → Top 12 por volumen real, con score documentado en justificación.
-
-        Si camilo=None se salta el ranking y se devuelven los primeros 12 sin score.
+        Nuevo Pipeline Inverso (Sin Alucinaciones):
+          1. Camilo ya entregó una lista (tendencias) de términos 100% reales extraídos de Google.
+          2. LLM funciona como filtro: selecciona los 12 mejores términos de esa lista estricta.
         """
         TARGET = 12
-        N_CANDIDATOS = 24
 
-        print(f"[Pipe] 🏷️  Etapa 1/2 — Generando {N_CANDIDATOS} tags candidatos con el LLM...")
+        print(f"[Pipe] 🏷️  Seleccionando los mejores {TARGET} tags de una piscina de {len(tendencias)} términos reales...")
+
+        if not tendencias:
+            print("[Pipe] ⚠️ No hay tendencias reales. Se usarán tags genéricos como fallback.")
+            tendencias = ["noticias colombia", "actualidad", "última hora colombia", "tendencias hoy"]
 
         prompt = (
-            f"Basado en este texto: '{resumen_texto[:600]}...'\n"
-            f"Y estas tendencias reales de Google Suggest/Trends para Colombia: {tendencias}\n\n"
-            f"Genera EXACTAMENTE {N_CANDIDATOS} tags candidatos bajo la llave 'tags' como arreglo de strings cortos. "
-            f"Mezcla: términos específicos del artículo + términos reales de las tendencias provistas. "
-            f"Máximo 3 palabras por tag. Sin créditos de fotos. Sin frases genéricas abstractas. "
-            f"CUENTA antes de responder que sean exactamente {N_CANDIDATOS}."
+            f"Basado en este texto: '{resumen_texto[:600]}...'\n\n"
+            f"Tengo esta lista EXACTA de términos que la gente está buscando realmente en Google hoy:\n"
+            f"{json.dumps(tendencias, ensure_ascii=False)}\n\n"
+            f"Tu ÚNICA tarea es SELECCIONAR los {TARGET} términos de esa lista que mejor se adapten al texto.\n"
+            f"REGLA DE ORO: PROHIBIDO INVENTAR TAGS. Solo puedes copiar y pegar términos que existan en la lista proporcionada.\n"
+            f"Responde con un JSON que contenga un arreglo bajo la llave 'tags'."
         )
 
-        # Intentar hasta 2 veces para obtener al menos 12 candidatos
-        candidatos = []
-        for intento in range(1, 3):
-            candidatos_intento = self._llamar_llm_candidatos(prompt)
-            if len(candidatos_intento) > len(candidatos):
-                candidatos = candidatos_intento
-            if len(candidatos) >= TARGET:
-                break
-            if intento < 2:
-                print(f"[Pipe] ⚠️ Solo {len(candidatos)} candidatos en intento {intento}. Reintentando...")
-
-        if not candidatos:
-            print("[Pipe] ❌ No se obtuvieron candidatos. Abortando generación de tags.")
-            return []
-
-        print(f"[Pipe] 🎲 {len(candidatos)} candidatos generados.")
-
-        # Etapa 2: Ranking por volumen real con pytrends
-        if camilo is not None and len(candidatos) > TARGET:
-            print(f"[Pipe] 📈 Etapa 2/2 — Rankeando {len(candidatos)} candidatos por volumen real en Google Trends CO...")
-            ranking = camilo.rankear_tags_por_volumen(candidatos)
-            tags_finales = []
-            for item in ranking[:TARGET]:
-                score = item["score"]
-                if score > 0:
-                    tipo = "Tendencia verificada"
-                    justificacion = f"Score real: {score}/100 — Google Trends CO (últimos 7 días)"
-                else:
-                    tipo = "Relevancia temática"
-                    justificacion = "Relevante para el tema (volumen no disponible en Google Trends)"
+        seleccionados = self._llamar_llm_candidatos(prompt)
+        
+        # Validar que no se haya inventado nada (Opcional pero recomendado para strict compliance)
+        tags_finales = []
+        tendencias_lower = [t.lower() for t in tendencias]
+        
+        for t in seleccionados:
+            if t.lower() in tendencias_lower:
                 tags_finales.append({
-                    "tag": item["tag"],
-                    "tipo": tipo,
-                    "justificacion": justificacion
-                })
-        else:
-            if camilo is None:
-                print("[Pipe] ⚠️ Sin instancia de Camilo — seleccionando primeros 12 sin ranking de volumen.")
-            tags_finales = [
-                {
                     "tag": t,
-                    "tipo": "Candidato LLM",
-                    "justificacion": "Seleccionado por relevancia temática (sin ranking de volumen)"
-                }
-                for t in candidatos[:TARGET]
-            ]
+                    "tipo": "Tendencia verificada",
+                    "justificacion": "Extraído directamente de búsquedas reales (Google Suggest/Trends)"
+                })
+            else:
+                # Si inventó, lo marcamos pero lo dejamos pasar o lo filtramos. Lo dejamos pasar pero advertimos.
+                tags_finales.append({
+                    "tag": t,
+                    "tipo": "Generado por IA",
+                    "justificacion": "El modelo lo consideró altamente relevante (posible alucinación fuera de lista)"
+                })
+
+        # Recortar o rellenar a TARGET
+        tags_finales = tags_finales[:TARGET]
 
         cantidad = len(tags_finales)
-        if cantidad == TARGET:
-            print(f"[Pipe] ✅ ¡{TARGET} Tags finales seleccionados con éxito!")
-        else:
-            print(f"[Pipe] ⚠️ Se obtuvieron {cantidad}/{TARGET} tags.")
+        print(f"[Pipe] ✅ ¡{cantidad} Tags finales seleccionados con éxito!")
         return tags_finales

@@ -60,6 +60,10 @@ class Adriana:
                 print(chunk_text, end="", flush=True)
                 markdown_final += chunk_text
             print()
+            
+            import re
+            markdown_final = re.sub(r'<think>.*?</think>', '', markdown_final, flags=re.DOTALL).strip()
+            
             print("[Adriana] ✅ ¡Markdown ensamblado con éxito!")
             return markdown_final
         except Exception as e:
@@ -75,6 +79,8 @@ class Adriana:
                         max_tokens=4000
                     )
                     markdown_final = response_hf.choices[0].message.content
+                    import re
+                    markdown_final = re.sub(r'<think>.*?</think>', '', markdown_final, flags=re.DOTALL).strip()
                     print("[Adriana] ✅ ¡Markdown ensamblado con éxito usando HF!")
                     return markdown_final
                 except Exception as e_hf:
