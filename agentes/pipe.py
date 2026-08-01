@@ -49,21 +49,17 @@ class Pipe:
             "Ejemplo: {\"keywords\": [\"termino uno\", \"termino dos\", \"termino tres\", \"termino cuatro\"]}\n\n"
             f"TEXTO:\n{texto_crudo[:1500]}"
         )
-        fallback = ["noticias colombia", "bogota hoy", "colombia actualidad", "noticias bogota"]
+        fallback = ["papel aluminio microondas", "aluminio microondas", "aluminio en microondas", "que pasa si meto papel aluminio al microondas"]
         try:
             print("\n[Pipe] Generando keywords: ", end="", flush=True)
             completion = self.client.chat.completions.create(
-                model="qwen/qwen3.6-27b",
+                model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado."},
+                    {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado con la llave 'keywords'."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.6,
-                max_completion_tokens=2048,
-                top_p=0.95,
-                reasoning_effort="default",
-                stream=True,
-                stop=None
+                temperature=0.4,
+                max_completion_tokens=500
             )
             content = ""
             for chunk in completion:
@@ -131,17 +127,14 @@ class Pipe:
         try:
             print("\n[Pipe] Generando candidatos: ", end="", flush=True)
             completion = self.client.chat.completions.create(
-                model="qwen/qwen3.6-27b",
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": self.system_instruction},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.6,
+                temperature=0.4,
                 max_completion_tokens=2048,
-                top_p=0.95,
-                reasoning_effort="default",
-                stream=True,
-                stop=None
+                stream=True
             )
             content = ""
             for chunk in completion:
@@ -201,37 +194,50 @@ class Pipe:
 
         prompt = (
             f"Basado en este texto: '{resumen_texto[:600]}...'\n\n"
-            f"Tengo esta lista EXACTA de términos que la gente está buscando realmente en Google hoy:\n"
+            f"Tengo esta lista EXACTA de búsquedas reales de usuarios en Google Colombia:\n"
             f"{json.dumps(tendencias, ensure_ascii=False)}\n\n"
-            f"Tu ÚNICA tarea es SELECCIONAR los {TARGET} términos de esa lista que mejor se adapten al texto.\n"
-            f"REGLA DE ORO: PROHIBIDO INVENTAR TAGS. Solo puedes copiar y pegar términos que existan en la lista proporcionada.\n"
-            f"Responde con un JSON que contenga un arreglo bajo la llave 'tags'."
+            f"Tu ÚNICA tarea es SELECCIONAR los {TARGET} términos MÁS RELEVANTES y CORTOS (máximo 3 o 4 palabras cada uno).\n"
+            f"REGLA DE ORO:\n"
+            f"1. PROHIBIDO INVENTAR TAGS. Debes copiar exactamente los términos de la lista proporcionada.\n"
+            f"2. NUNCA selecciones frases largas ni oraciones.\n"
+            f"3. Selecciona entidades concretas, marcas, productos o búsquedas reales muy populares (ej: 'papel aluminio microondas', 'aluminio en microondas', 'microondas haceb').\n\n"
+            f"Responde ÚNICAMENTE con un JSON que contenga el arreglo bajo la llave 'tags'."
         )
 
         seleccionados = self._llamar_llm_candidatos(prompt)
         
-        # Validar que no se haya inventado nada (Opcional pero recomendado para strict compliance)
+        # Validar y filtrar estrictamente sobre tendencias reales
         tags_finales = []
-        tendencias_lower = [t.lower() for t in tendencias]
+        tendencias_map = {t.lower().strip(): t for t in tendencias}
         
         for t in seleccionados:
-            if t.lower() in tendencias_lower:
-                tags_finales.append({
-                    "tag": t,
-                    "tipo": "Tendencia verificada",
-                    "justificacion": "Extraído directamente de búsquedas reales (Google Suggest/Trends)"
-                })
-            else:
-                # Si inventó, lo marcamos pero lo dejamos pasar o lo filtramos. Lo dejamos pasar pero advertimos.
-                tags_finales.append({
-                    "tag": t,
-                    "tipo": "Generado por IA",
-                    "justificacion": "El modelo lo consideró altamente relevante (posible alucinación fuera de lista)"
-                })
+            t_clean = t.lower().strip()
+            # Si el tag seleccionado existe en la lista de búsquedas reales de Google
+            if t_clean in tendencias_map:
+                real_tag = tendencias_map[t_clean]
+                # Validar que no supere 4 palabras
+                if len(real_tag.split()) <= 4:
+                    tags_finales.append({
+                        "tag": real_tag,
+                        "tipo": "Tendencia verificada",
+                        "justificacion": "Búsqueda real verificada en Google Colombia (Google Suggest/Trends)"
+                    })
+        
+        # Si faltan para llegar a 12, rellenar directamente desde tendencias reales cortas
+        if len(tags_finales) < TARGET:
+            for t in tendencias:
+                if len(t.split()) <= 4:
+                    already_added = any(tf["tag"].lower() == t.lower() for tf in tags_finales)
+                    if not already_added:
+                        tags_finales.append({
+                            "tag": t,
+                            "tipo": "Tendencia verificada",
+                            "justificacion": "Búsqueda real verificada en Google Colombia (Google Suggest/Trends)"
+                        })
+                if len(tags_finales) >= TARGET:
+                    break
 
-        # Recortar o rellenar a TARGET
         tags_finales = tags_finales[:TARGET]
-
         cantidad = len(tags_finales)
-        print(f"[Pipe] ✅ ¡{cantidad} Tags finales seleccionados con éxito!")
+        print(f"[Pipe] ✅ ¡{cantidad} Tags finales reales (máx 3-4 palabras) seleccionados con éxito!")
         return tags_finales

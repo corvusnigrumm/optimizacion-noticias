@@ -42,17 +42,14 @@ class Adriana:
         try:
             print("\n[Adriana] Ensamblando markdown: ", end="", flush=True)
             completion = self.client.chat.completions.create(
-                model="qwen/qwen3.6-27b",
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": self.system_instruction},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.6,
-                max_completion_tokens=2048,
-                top_p=0.95,
-                reasoning_effort="default",
-                stream=True,
-                stop=None
+                temperature=0.5,
+                max_completion_tokens=4096,
+                stream=True
             )
             markdown_final = ""
             for chunk in completion:
