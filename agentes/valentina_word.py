@@ -58,14 +58,18 @@ class ValentinaWord:
         print("\n[ValentinaWord] Analizando texto con molde editorial: ", end="", flush=True)
         try:
             completion = self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.6-27b",
                 messages=[
                     {"role": "system", "content": MOLDE_NEGRILLAS},
                     {"role": "user", "content": f"Texto de la noticia:\n\n{texto_crudo}"}
                 ],
                 temperature=0.3,
                 max_completion_tokens=2048,
-                stream=True
+                top_p=0.95,
+                reasoning_effort="default",
+                response_format={"type": "json_object"},
+                stream=True,
+                stop=None
             )
             content = ""
             for chunk in completion:
@@ -74,9 +78,8 @@ class ValentinaWord:
                 content += chunk_text
             print()
 
-            # Limpiar bloques <think>
+            # Limpiar bloques <think> o explicaciones antes del JSON
             content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
-            # Extraer bloque JSON
             match = re.search(r"\{[\s\S]*\}", content)
             if match:
                 content = match.group(0)
@@ -102,7 +105,7 @@ class ValentinaWord:
         """Fallback a Hugging Face si Groq falla."""
         try:
             response = self.hf_client.chat.completions.create(
-                model="meta-llama/Meta-Llama-3-8B-Instruct",
+                model="Qwen/Qwen2.5-72B-Instruct",
                 messages=[
                     {"role": "system", "content": MOLDE_NEGRILLAS},
                     {"role": "user", "content": f"Texto de la noticia:\n\n{texto_crudo}"}
@@ -134,13 +137,17 @@ class ValentinaWord:
         )
         return texto_crudo + contexto
 
-    def _construir_docx(self, titulo, lineas, subtitulos_set, frases):
+    def _construir_docx(self, titulo, lineas, subtitulos_set, frases, tags_seo=None):
         """
         Construye el documento Word:
         - Título → Heading 1
         - Subtítulos detectados → Heading 2
         - Resto → Normal con runs en Bold donde corresponda
+        - Tags SEO → tabla al final (si se proporcionan)
         """
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+
         doc = Document()
 
         # --- Estilo global: fuente Georgia 12pt ---
@@ -172,18 +179,14 @@ class ValentinaWord:
             while restante:
                 mejor_match = None
                 mejor_inicio = len(restante)
-                mejor_frase = ""
                 for frase, patron in patrones:
                     m = patron.search(restante)
                     if m and m.start() < mejor_inicio:
                         mejor_match = m
                         mejor_inicio = m.start()
-                        mejor_frase = frase
                 if mejor_match:
-                    # Texto antes de la negrilla
                     if mejor_inicio > 0:
                         segmentos.append((restante[:mejor_inicio], False))
-                    # La negrilla (capturamos el texto exacto del match)
                     segmentos.append((mejor_match.group(), True))
                     restante = restante[mejor_match.end():]
                 else:
@@ -207,7 +210,7 @@ class ValentinaWord:
 
             # Primera línea no vacía → H1
             if primera_linea:
-                parrafo = doc.add_heading(linea_norm, level=1)
+                doc.add_heading(linea_norm, level=1)
                 primera_linea = False
                 continue
 
@@ -225,44 +228,86 @@ class ValentinaWord:
             parrafo.paragraph_format.space_after = Pt(8)
             aplicar_bold_en_parrafo(parrafo, linea_norm)
 
+        # --- Sección de Tags SEO al final ---
+        if tags_seo:
+            doc.add_page_break()
+            doc.add_heading("Tags SEO", level=2)
+            p_intro = doc.add_paragraph(style="Normal")
+            p_intro.add_run("Búsquedas reales verificadas en Google Colombia (Google Suggest / Trends):")
+            p_intro.paragraph_format.space_after = Pt(6)
+
+            # Tabla: Tag | Tipo
+            tabla = doc.add_table(rows=1, cols=2)
+            tabla.style = "Table Grid"
+            # Encabezados
+            hdr = tabla.rows[0].cells
+            for celda, texto_hdr in zip(hdr, ["Tag", "Tipo"]):
+                celda.text = texto_hdr
+                for run in celda.paragraphs[0].runs:
+                    run.bold = True
+                    run.font.name = "Georgia"
+                    run.font.size = Pt(11)
+
+            # Filas con los tags
+            for tag_info in tags_seo:
+                if isinstance(tag_info, dict):
+                    tag_txt = tag_info.get("tag", "")
+                    tipo_txt = tag_info.get("tipo", "Tendencia verificada")
+                elif isinstance(tag_info, str):
+                    tag_txt = tag_info
+                    tipo_txt = "Tendencia verificada"
+                else:
+                    continue
+                fila = tabla.add_row().cells
+                fila[0].text = tag_txt
+                fila[1].text = tipo_txt
+                for celda in fila:
+                    for run in celda.paragraphs[0].runs:
+                        run.font.name = "Georgia"
+                        run.font.size = Pt(11)
+
+            print(f"[ValentinaWord] 🏷️  {len(tags_seo)} tags SEO añadidos al Word.")
+
         return doc
 
-    def generar_docx(self, texto_crudo, ruta_salida, busquedas_activas=None):
+    def generar_docx(self, texto_crudo, ruta_salida, busquedas_activas=None, tags_seo=None):
         """
         Pipeline completo:
         1. Enriquece el texto con búsquedas activas de Google (si se proveen)
-        2. Llama al LLM con el molde de Natalia
-        3. Construye y guarda el .docx
+        2. Llama al LLM Qwen con el molde de Natalia
+        3. Construye y guarda el .docx con negrillas, H1/H2 y tabla de Tags SEO
 
         Args:
             texto_crudo: El artículo en texto plano
             ruta_salida: Ruta donde guardar el .docx resultante
             busquedas_activas: Lista de términos de Google Suggest (opcional)
+            tags_seo: Lista de dicts {tag, tipo, justificacion} generados por Pipe (opcional)
 
         Returns:
             ruta_salida si fue exitoso, None si falló
         """
-        print("[ValentinaWord] 📝 Iniciando generación de Word con negrillas editoriales...")
+        print("[ValentinaWord] 📝 Iniciando generación de Word con negrillas editoriales (Qwen)...")
 
         # 1. Enriquecer con búsquedas activas
         texto_enriquecido = self._enriquecer_con_busquedas(texto_crudo, busquedas_activas or [])
 
-        # 2. Obtener subtítulos y frases del LLM
+        # 2. Obtener subtítulos y frases del LLM (Qwen)
         subtitulos, frases = self._llamar_llm(texto_enriquecido)
 
         # 3. Procesar líneas del texto original (sin el contexto añadido)
         lineas = texto_crudo.split("\n")
 
-        # 4. Construir el documento
+        # 4. Construir el documento con tags SEO al final
         doc = self._construir_docx(
             titulo=lineas[0].strip() if lineas else "Artículo",
             lineas=lineas,
             subtitulos_set=subtitulos,
-            frases=frases
+            frases=frases,
+            tags_seo=tags_seo
         )
 
         # 5. Guardar
-        os.makedirs(os.path.dirname(ruta_salida), exist_ok=True)
+        os.makedirs(os.path.dirname(os.path.abspath(ruta_salida)), exist_ok=True)
         doc.save(ruta_salida)
         print(f"[ValentinaWord] ✅ Documento Word guardado en: {ruta_salida}")
         return ruta_salida

@@ -136,13 +136,20 @@ def main():
         os.makedirs(out_dir, exist_ok=True)
         ruta_docx = os.path.join(out_dir, "articulo_optimizado.docx")
 
-    # 4. Ejecutar ValentinaWord
+    # 4. Generar Tags SEO con Pipe
+    print("\n🏷️  Generando tags SEO...")
+    from agentes import Pipe
+    pipe_agent = Pipe()
+    tags_seo = pipe_agent.generar_tags(texto_crudo[:1000], busquedas_activas)
+
+    # 5. Ejecutar ValentinaWord
     print("\n🚀 Iniciando generación del documento Word con negrillas editoriales...\n")
     agente = ValentinaWord()
     resultado = agente.generar_docx(
         texto_crudo=texto_crudo,
         ruta_salida=ruta_docx,
-        busquedas_activas=busquedas_activas
+        busquedas_activas=busquedas_activas,
+        tags_seo=tags_seo
     )
 
     if resultado:

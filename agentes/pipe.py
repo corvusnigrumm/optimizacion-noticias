@@ -53,13 +53,18 @@ class Pipe:
         try:
             print("\n[Pipe] Generando keywords: ", end="", flush=True)
             completion = self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.6-27b",
                 messages=[
                     {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado con la llave 'keywords'."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.4,
-                max_completion_tokens=500
+                temperature=0.3,
+                max_completion_tokens=500,
+                top_p=0.95,
+                reasoning_effort="default",
+                response_format={"type": "json_object"},
+                stream=True,
+                stop=None
             )
             content = ""
             for chunk in completion:
@@ -92,11 +97,12 @@ class Pipe:
                 print("[Pipe] ⚠️ Límite de Groq. Usando Hugging Face (Fallback)...")
                 try:
                     response_hf = self.hf_client.chat.completions.create(
-                        model="meta-llama/Meta-Llama-3-8B-Instruct",
+                        model="Qwen/Qwen2.5-72B-Instruct",
                         messages=[
                             {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado."},
                             {"role": "user", "content": prompt}
                         ],
+                        response_format={"type": "json_object"},
                         max_tokens=150
                     )
                     data = json.loads(response_hf.choices[0].message.content)
@@ -127,14 +133,18 @@ class Pipe:
         try:
             print("\n[Pipe] Generando candidatos: ", end="", flush=True)
             completion = self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.6-27b",
                 messages=[
                     {"role": "system", "content": self.system_instruction},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.4,
+                temperature=0.3,
                 max_completion_tokens=2048,
-                stream=True
+                top_p=0.95,
+                reasoning_effort="default",
+                response_format={"type": "json_object"},
+                stream=True,
+                stop=None
             )
             content = ""
             for chunk in completion:
@@ -162,7 +172,7 @@ class Pipe:
                 print("[Pipe] ⚠️ Rate limit Groq → usando Hugging Face para candidatos...")
                 try:
                     response_hf = self.hf_client.chat.completions.create(
-                        model="meta-llama/Meta-Llama-3-8B-Instruct",
+                        model="Qwen/Qwen2.5-72B-Instruct",
                         messages=[
                             {"role": "system", "content": self.system_instruction},
                             {"role": "user", "content": prompt}
