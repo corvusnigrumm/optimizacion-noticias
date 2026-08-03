@@ -15,8 +15,10 @@ class Pipe:
     """
     def __init__(self, model_name="llama-3.3-70b-versatile"):
         self.model_name = model_name
-        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.hf_client = InferenceClient(api_key=os.getenv("HF_TOKEN"))
+        groq_key = os.getenv("GROQ_API_KEY") or "dummy_key"
+        self.client = Groq(api_key=groq_key)
+        hf_token = os.getenv("HF_TOKEN") or None
+        self.hf_client = InferenceClient(api_key=hf_token)
         self.system_instruction = (
             "Eres Pipe, un experto estratega de SEO y Google Discover para medios de comunicación en Colombia. "
             "Debes leer el resumen de un texto y generar una lista de tags enfocados al 100% en optimización para Google Discover.\n\n"
@@ -188,13 +190,16 @@ class Pipe:
                 print(f"[Pipe] ❌ Error LLM generando candidatos: {e}")
         return []
 
-    def generar_tags(self, resumen_texto, tendencias, camilo=None):
+    def generar_tags(self, resumen_texto, tendencias=None, camilo=None):
         """
         Nuevo Pipeline Inverso (Sin Alucinaciones):
           1. Camilo ya entregó una lista (tendencias) de términos 100% reales extraídos de Google.
           2. LLM funciona como filtro: selecciona los 12 mejores términos de esa lista estricta.
         """
         TARGET = 12
+
+        if tendencias is None:
+            tendencias = ["noticias colombia", "actualidad", "última hora colombia", "tendencias hoy"]
 
         print(f"[Pipe] 🏷️  Seleccionando los mejores {TARGET} tags de una piscina de {len(tendencias)} términos reales...")
 
@@ -252,11 +257,12 @@ class Pipe:
         print(f"[Pipe] ✅ ¡{cantidad} Tags finales reales (máx 3-4 palabras) seleccionados con éxito!")
         return tags_finales
 
-    def run(self, texto, slug=None):
+    def run(self, texto, slug=None, tendencias=None):
         """Método de compatibilidad con app_web."""
         print(f"[Pipe] Generando tags para: {slug or 'nota'}...")
-        tags = self.generar_tags(texto)
+        tags = self.generar_tags(texto, tendencias=tendencias)
         return {"texto": texto, "tags": tags}
 
 PipeAgent = Pipe
+
 

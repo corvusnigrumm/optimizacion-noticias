@@ -10,8 +10,10 @@ class Adriana:
     """
     def __init__(self, model_name="llama-3.3-70b-versatile"):
         self.model_name = model_name
-        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.hf_client = InferenceClient(api_key=os.getenv("HF_TOKEN"))
+        groq_key = os.getenv("GROQ_API_KEY") or "dummy_key"
+        self.client = Groq(api_key=groq_key)
+        hf_token = os.getenv("HF_TOKEN") or None
+        self.hf_client = InferenceClient(api_key=hf_token)
         self.system_instruction = (
             "Eres Adriana, la Editora en Jefe y QA de 'La Redacción'. Tu tarea es ensamblar un artículo optimizado para SEO.\n"
             "Se te entregará el texto ya con negrillas, y una lista de 12 tags.\n"

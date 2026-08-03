@@ -69,7 +69,7 @@ def _run_agentes(texto: str, slug: str) -> dict:
         res_camilo = camilo.run(texto, slug)
 
         print(f"[Pipe] Generando estrategia de tags...")
-        res_pipe = pipe.run(res_camilo.get("texto", texto), slug)
+        res_pipe = pipe.run(res_camilo.get("texto", texto), slug=slug, tendencias=res_camilo.get("tags"))
 
         print(f"[Valentina] Optimizando negrillas y titulares...")
         res_val = val.run(res_pipe.get("texto", texto), slug)
