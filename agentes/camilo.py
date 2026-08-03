@@ -194,7 +194,14 @@ class Camilo:
             print(f"[Camilo] \U0001f525 Añadidas {len(rss_tendencias)} tendencias diarias de Google Trends.")
             todas_las_sugerencias.extend(rss_tendencias)
 
-        if len(todas_las_sugerencias) == 0:
-            print(f"[Camilo] \u26a0\ufe0f No se pudieron extraer sugerencias. Se requerirán proxies si persiste.")
-
         return todas_las_sugerencias
+
+    def run(self, texto, slug=None):
+        """Método de compatibilidad con el pipeline de app_web."""
+        print(f"[Camilo] Ejecutando análisis semántico para: {slug or 'nota'}...")
+        kw = slug.replace('_', ' ') if slug else "noticias colombia"
+        sugerencias = self.investigar_tendencias([kw])
+        return {"texto": texto, "tags": sugerencias, "sugerencias": sugerencias}
+
+CamiloAgent = Camilo
+

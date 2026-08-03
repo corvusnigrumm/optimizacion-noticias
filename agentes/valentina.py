@@ -126,3 +126,12 @@ class Valentina:
             else:
                 print(f"[Valentina] ❌ Error: {e}")
                 return texto_crudo
+
+    def run(self, texto, slug=None):
+        """Método de compatibilidad con app_web."""
+        texto_opt = self.optimizar_texto(texto)
+        frases = re.findall(r'\*\*(.*?)\*\*', texto_opt)
+        return {"texto": texto_opt, "frases": frases}
+
+ValentinaAgent = Valentina
+

@@ -251,3 +251,12 @@ class Pipe:
         cantidad = len(tags_finales)
         print(f"[Pipe] ✅ ¡{cantidad} Tags finales reales (máx 3-4 palabras) seleccionados con éxito!")
         return tags_finales
+
+    def run(self, texto, slug=None):
+        """Método de compatibilidad con app_web."""
+        print(f"[Pipe] Generando tags para: {slug or 'nota'}...")
+        tags = self.generar_tags(texto)
+        return {"texto": texto, "tags": tags}
+
+PipeAgent = Pipe
+
