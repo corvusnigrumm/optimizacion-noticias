@@ -8,7 +8,7 @@ class Adriana:
     Recibe el trabajo de Valentina (texto optimizado) y Pipe (tags), 
     genera los H2s y ensambla el documento final en Markdown.
     """
-    def __init__(self, model_name="llama-3.3-70b-versatile"):
+    def __init__(self, model_name="qwen-2.5-32b"):
         self.model_name = model_name
         groq_key = os.getenv("GROQ_API_KEY") or "dummy_key"
         self.client = Groq(api_key=groq_key)
@@ -44,7 +44,7 @@ class Adriana:
         try:
             print("\n[Adriana] Ensamblando markdown: ", end="", flush=True)
             completion = self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=self.model_name,
                 messages=[
                     {"role": "system", "content": self.system_instruction},
                     {"role": "user", "content": prompt}
@@ -70,7 +70,7 @@ class Adriana:
                 print("[Adriana] ⚠️ Límite de Groq alcanzado. Usando Hugging Face (Fallback)...")
                 try:
                     response_hf = self.hf_client.chat.completions.create(
-                        model="meta-llama/Meta-Llama-3-8B-Instruct",
+                        model="Qwen/Qwen2.5-72B-Instruct",
                         messages=[
                             {"role": "system", "content": self.system_instruction},
                             {"role": "user", "content": prompt}

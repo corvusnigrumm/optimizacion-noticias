@@ -13,7 +13,7 @@ class Pipe:
       Etapa 2 → pytrends mide el volumen real (0-100) de cada candidato en CO.
       Resultado → Top 12 por score real, con el dato de volumen en la justificación.
     """
-    def __init__(self, model_name="llama-3.3-70b-versatile"):
+    def __init__(self, model_name="qwen-2.5-32b"):
         self.model_name = model_name
         groq_key = os.getenv("GROQ_API_KEY") or "dummy_key"
         self.client = Groq(api_key=groq_key)
@@ -171,7 +171,7 @@ class Pipe:
             print(f"[Pipe] ⚠️ Excepción en API primaria ({e}) → Intentando Hugging Face...")
             try:
                 response_hf = self.hf_client.chat.completions.create(
-                    model="meta-llama/Meta-Llama-3-8B-Instruct",
+                    model="Qwen/Qwen2.5-72B-Instruct",
                     messages=[
                         {"role": "system", "content": self.system_instruction},
                         {"role": "user", "content": prompt}

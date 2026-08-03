@@ -11,7 +11,7 @@ class Valentina:
     y las aplica programáticamente sobre el texto original.
     El texto JAMAS es modificado.
     """
-    def __init__(self, model_name="llama-3.3-70b-versatile"):
+    def __init__(self, model_name="qwen-2.5-32b"):
         self.model_name = model_name
         groq_key = os.getenv("GROQ_API_KEY") or "dummy_key"
         self.client = Groq(api_key=groq_key)
@@ -135,7 +135,7 @@ class Valentina:
             try:
                 frases = self._extraer_frases(
                     self.hf_client,
-                    "meta-llama/Meta-Llama-3-8B-Instruct",
+                    "Qwen/Qwen2.5-72B-Instruct",
                     texto_crudo,
                     extra_kwargs={"max_tokens": 2000}
                 )
