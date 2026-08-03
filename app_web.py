@@ -55,36 +55,25 @@ def _run_agentes(texto: str, slug: str) -> dict:
     sys.stdout = _log_capture
     resultado = {}
     try:
-        from agentes.camilo import Camilo
         from agentes.pipe import Pipe
         from agentes.valentina import Valentina
         from agentes.adriana import Adriana
         import random, re
 
-        camilo  = Camilo()
         pipe    = Pipe()
         val     = Valentina()
         adriana = Adriana()
 
-        # PASO 1 — Pipe extrae keywords REALES del texto del artículo
-        print("[Pipe] 🧠 Extrayendo keywords temáticas del artículo...")
-        keywords = pipe.extraer_keywords_principales(texto)
-        print(f"[Pipe] 🎯 Keywords extraídas: {keywords}")
+        # PASO 1 — Pipe lee la nota íntegra: ni el slug ni la URL intervienen en los tags.
+        print("[Pipe] 🏷️ Generando tags desde el contenido completo del artículo...")
+        tags_raw = pipe.generar_tags(texto)
 
-        # PASO 2 — Camilo consulta Google Suggest con esas keywords reales
-        print("[Camilo] 🕵️ Consultando Google Suggest para keywords del artículo...")
-        tendencias = camilo.investigar_tendencias(keywords)
-
-        # PASO 3 — Pipe selecciona los mejores tags de las tendencias reales
-        print("[Pipe] 🏷️ Generando tags SEO a partir de tendencias reales...")
-        tags_raw = pipe.generar_tags(texto[:800], tendencias)
-
-        # PASO 4 — Valentina aplica negrillas editoriales
+        # PASO 2 — Valentina aplica negrillas editoriales
         print("[Valentina] ✍️ Aplicando negrillas editoriales...")
         texto_optimizado = val.optimizar_texto(texto)
         frases_resaltadas = re.findall(r'\*\*(.*?)\*\*', texto_optimizado)
 
-        # PASO 5 — Adriana ensambla el documento final y genera H2s
+        # PASO 3 — Adriana ensambla el documento final y genera H2s
         print("[Adriana] 📋 Generando H2s y ensamblando documento...")
         tags_json_str = str(tags_raw[:12])
         md_final = adriana.ensamblar_markdown(texto_optimizado, tags_json_str)

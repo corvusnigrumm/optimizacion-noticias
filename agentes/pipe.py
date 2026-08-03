@@ -1,300 +1,132 @@
 import json
-import re
-from groq import Groq
 import os
+import re
+import unicodedata
+
+from groq import Groq
 from huggingface_hub import InferenceClient
 
 
 class Pipe:
-    """
-    Pipe: El Estratega SEO (v2).
-    Pipeline de 2 etapas:
-      Etapa 1 → LLM genera 24 tags candidatos (pool amplio).
-      Etapa 2 → pytrends mide el volumen real (0-100) de cada candidato en CO.
-      Resultado → Top 12 por score real, con el dato de volumen en la justificación.
-    """
+    """Genera tags a partir de la lectura del artículo, no de su URL ni de tendencias ajenas."""
+
+    STOPWORDS = {
+        "a", "al", "ante", "con", "contra", "de", "del", "desde", "el", "en", "entre", "es",
+        "esta", "este", "la", "las", "lo", "los", "más", "no", "o", "para", "por", "que", "se",
+        "sin", "sobre", "su", "sus", "un", "una", "y", "ya", "también", "como", "cuando", "donde",
+        "noticias", "noticia", "colombia", "actualidad", "última", "hora", "caso", "tema", "país",
+    }
+
     def __init__(self, model_name="qwen-2.5-32b"):
         self.model_name = model_name
-        groq_key = os.getenv("GROQ_API_KEY") or "dummy_key"
-        self.client = Groq(api_key=groq_key)
-        hf_token = os.getenv("HF_TOKEN") or None
-        self.hf_client = InferenceClient(api_key=hf_token)
-        self.system_instruction = (
-            "Eres Pipe, un experto estratega de SEO y Google Discover para medios de comunicación en Colombia. "
-            "Debes leer el resumen de un texto y generar una lista de tags enfocados al 100% en optimización para Google Discover.\n\n"
-            "REGLAS CRÍTICAS:\n"
-            "1. Discover usa nodos de interés amplios, entidades reales y categorías temáticas de tendencia.\n"
-            "2. Debes generar EXACTAMENTE 24 TAGS candidatos como un arreglo de strings simples.\n"
-            "3. Todos los tags deben ser búsquedas reales basadas en los términos de Google Trends/Suggest provistos.\n"
-            "4. PROHIBICIÓN: NUNCA uses créditos de imágenes (iStock, Getty, Shutterstock, etc.).\n"
-            "5. Cada tag: máximo 3 palabras. NUNCA frases largas ni oraciones.\n"
-            "6. Evita términos genéricos de una sola palabra abstracta (ej. 'Educación', 'Niños', 'País').\n\n"
-            "Tu respuesta DEBE ser EXCLUSIVAMENTE un objeto JSON con la llave 'tags' conteniendo el arreglo de strings:\n"
-            "{\"tags\": [\"Tag Uno\", \"Tag Dos\", \"Tag Tres\", ...]}"
-        )
+        self.client = Groq(api_key=os.getenv("GROQ_API_KEY") or "dummy_key")
+        self.hf_client = InferenceClient(api_key=os.getenv("HF_TOKEN") or None)
+        self.system_instruction = """Eres el responsable de etiquetas de un medio colombiano.
+Lee el artículo completo antes de etiquetarlo. Devuelve EXCLUSIVAMENTE JSON:
+{"tags": ["tag 1", "tag 2"]}.
 
-    def extraer_keywords_principales(self, texto_crudo):
-        """
-        Extrae 4 keywords temáticas amplias del artículo para que Camilo
-        consulte Google Suggest con cada una y acumule tendencias reales.
-        """
-        print("[Pipe] 🧠 Analizando el texto para extraer múltiples keywords temáticas...")
-        prompt = (
-            "Eres un experto en SEO de noticias para medios colombianos. Lee el siguiente fragmento de una noticia "
-            "periodística y genera EXACTAMENTE 4 palabras clave o términos de búsqueda MUY ESPECÍFICOS, "
-            "basados en 'tendencias en caliente' (hot trends). "
-            "Deben incluir nombres propios, enfrentamientos concretos, eventos de última hora o la controversia central. "
-            "Por ejemplo, si el artículo habla de la cancelación de la Finalissima, "
-            "los keywords serían: 'Finalissima 2026', 'España vs Argentina', "
-            "'por qué se canceló Finalissima', 'Mundial 2026 Finalissima'. "
-            "Responde ÚNICAMENTE con un objeto JSON válido con la llave 'keywords' que contenga el arreglo. "
-            "Ejemplo: {\"keywords\": [\"termino uno\", \"termino dos\", \"termino tres\", \"termino cuatro\"]}\n\n"
-            f"TEXTO:\n{texto_crudo[:1500]}"
-        )
-        fallback = ["papel aluminio microondas", "aluminio microondas", "aluminio en microondas", "que pasa si meto papel aluminio al microondas"]
-        try:
-            print("\n[Pipe] Generando keywords: ", end="", flush=True)
-            completion = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado con la llave 'keywords'."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3,
-                max_completion_tokens=500,
-                top_p=0.95,
-                response_format={"type": "json_object"},
-                stream=True,
-                stop=None
-            )
-            content = ""
-            for chunk in completion:
-                chunk_text = chunk.choices[0].delta.content or ""
-                print(chunk_text, end="", flush=True)
-                content += chunk_text
-            print()
-            print()
-            
-            # Limpiar bloque <think>
-            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
-            
-            # Extraer solo el bloque JSON
-            match = re.search(r'\{[\s\S]*\}', content)
-            if match:
-                content = match.group(0)
-            
-            try:
-                data = json.loads(content)
-                keywords = data.get("keywords", fallback)
-            except json.JSONDecodeError:
-                keywords = fallback
-                
-            if not isinstance(keywords, list) or len(keywords) == 0:
-                keywords = self._keywords_del_texto(texto_crudo)
-            print(f"[Pipe] 🎯 Keywords temáticas extraídas: {keywords}")
-            return keywords
-        except Exception as e:
-            print(f"[Pipe] ⚠️ Error extrayendo keywords via LLM ({e}). Usando extracción local del texto...")
-            try:
-                response_hf = self.hf_client.chat.completions.create(
-                    model="Qwen/Qwen2.5-72B-Instruct",
-                    messages=[
-                        {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    response_format={"type": "json_object"},
-                    max_tokens=150
-                )
-                data = json.loads(response_hf.choices[0].message.content)
-                keywords = data.get("keywords", [])
-                if keywords:
-                    print(f"[Pipe] 🎯 Keywords extraídas con HF: {keywords}")
-                    return keywords
-            except Exception as e_hf:
-                print(f"[Pipe] ⚠️ HF también falló: {e_hf}")
-            return self._keywords_del_texto(texto_crudo)
+Propón de 4 a 10 tags editoriales concretos: protagonista/entidad, evento o decisión,
+lugar cuando sea central, tema específico y concepto de servicio si aplica. Cada tag
+debe tener de 1 a 5 palabras, estar respaldado por el texto y servir para agrupar esta
+nota con otras del mismo asunto. No uses la URL, el slug, tendencias del día, frases de
+autocompletado ni tags genéricos como "Noticias Colombia", "Actualidad" o "Última hora".
+No inventes nombres, cifras, relaciones ni hechos que el artículo no mencione."""
 
-    def _keywords_del_texto(self, texto_crudo):
-        """Extrae keywords del texto del artículo sin depender de LLM."""
-        import re
-        # Extraer frases nominales (nombres propios + palabras clave)
-        stop_words = {"para", "como", "esta", "este", "estos", "estas", "pero", "aunque",
-                      "también", "tiene", "según", "sobre", "entre", "desde", "hasta",
-                      "donde", "cuando", "porque", "todos", "todas", "unos", "unas",
-                      "dice", "dijo", "será", "será", "años", "país", "caso", "hace"}
-        # Priorizar nombres propios y entidades (palabras en mayúscula)
-        entidades = re.findall(r'\b[A-ZÁÉÍÓÚÑ][a-záéíóúüñ]{3,}(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúüñ]{2,})*\b', texto_crudo)
-        keywords = []
-        vistas = set()
-        for e in entidades:
-            e_lower = e.lower()
-            if e_lower not in stop_words and e_lower not in vistas and len(e.split()) <= 3:
-                vistas.add(e_lower)
-                keywords.append(e)
-            if len(keywords) >= 4:
+    @staticmethod
+    def _normalizar(texto):
+        texto = unicodedata.normalize("NFKD", texto.casefold())
+        return "".join(c for c in texto if not unicodedata.combining(c))
+
+    def _palabras_significativas(self, texto):
+        return [p for p in re.findall(r"[a-záéíóúüñ]{3,}", self._normalizar(texto))
+                if p not in self.STOPWORDS]
+
+    def _tag_pertinente(self, tag, texto):
+        if not isinstance(tag, str):
+            return False
+        tag = " ".join(tag.split()).strip(".,;:!?")
+        if not tag or len(tag.split()) > 5 or len(tag) > 70:
+            return False
+        tokens = self._palabras_significativas(tag)
+        texto_tokens = set(self._palabras_significativas(texto))
+        if not tokens or all(token in self.STOPWORDS for token in tokens):
+            return False
+        # Un tag debe poder justificarse al leer el artículo, no solo sonar relacionado.
+        return sum(token in texto_tokens for token in tokens) / len(tokens) >= 0.6
+
+    def _normalizar_y_filtrar(self, tags, texto, limite=10):
+        resultado, vistos = [], set()
+        for tag in tags if isinstance(tags, list) else []:
+            if isinstance(tag, dict):
+                tag = tag.get("tag") or tag.get("nombre") or tag.get("name")
+            if not isinstance(tag, str):
+                continue
+            tag = " ".join(tag.split()).strip(".,;:!?")
+            clave = self._normalizar(tag)
+            if clave in vistos or not self._tag_pertinente(tag, texto):
+                continue
+            vistos.add(clave)
+            resultado.append(tag)
+            if len(resultado) >= limite:
                 break
-        # Complementar con palabras clave frecuentes si no hay suficientes entidades
-        if len(keywords) < 4:
-            palabras = re.findall(r'\b[a-záéíóúüñ]{5,}\b', texto_crudo.lower())
-            freq = {}
-            for p in palabras:
-                if p not in stop_words:
-                    freq[p] = freq.get(p, 0) + 1
-            top = sorted(freq.items(), key=lambda x: x[1], reverse=True)
-            for palabra, _ in top:
-                if palabra not in vistas:
-                    vistas.add(palabra)
-                    keywords.append(palabra)
-                if len(keywords) >= 4:
-                    break
-        print(f"[Pipe] 📝 Keywords extraídas localmente del texto: {keywords}")
-        return keywords or ["noticias colombia"]
-
-
-
-    def _normalizar_tags(self, raw):
-        """Convierte la respuesta del LLM (lista de strings o lista de dicts) a lista de strings."""
-        resultado = []
-        for t in raw:
-            if isinstance(t, str) and t.strip():
-                resultado.append(t.strip())
-            elif isinstance(t, dict):
-                tag_str = t.get("tag") or t.get("nombre") or t.get("name") or ""
-                if tag_str.strip():
-                    resultado.append(tag_str.strip())
         return resultado
 
-    def _llamar_llm_candidatos(self, prompt):
-        """Llama al LLM principal o al fallback de HF para obtener tags candidatos."""
+    def _llamar_llm(self, prompt):
         try:
-            print("\n[Pipe] Generando candidatos: ", end="", flush=True)
-            completion = self.client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
-                messages=[
-                    {"role": "system", "content": self.system_instruction},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3,
-                max_completion_tokens=2048,
-                top_p=0.95,
-                response_format={"type": "json_object"},
-                stream=True,
-                stop=None
+                messages=[{"role": "system", "content": self.system_instruction},
+                          {"role": "user", "content": prompt}],
+                temperature=0.15, max_completion_tokens=900, response_format={"type": "json_object"},
             )
-            content = ""
-            for chunk in completion:
-                chunk_text = chunk.choices[0].delta.content or ""
-                print(chunk_text, end="", flush=True)
-                content += chunk_text
-            print()
-            print()
-            
-            # Limpiar bloque <think>
-            content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL)
-            
-            # Extraer solo el bloque JSON
-            match = re.search(r'\{[\s\S]*\}', content)
-            if match:
-                content = match.group(0)
-            
+            return json.loads(response.choices[0].message.content).get("tags", [])
+        except Exception as error:
+            print(f"[Pipe] API principal no disponible: {error}")
             try:
-                data = json.loads(content)
-                return self._normalizar_tags(data.get("tags", []))
-            except json.JSONDecodeError:
-                return []
-        except Exception as e:
-            print(f"[Pipe] ⚠️ Excepción en API primaria ({e}) → Intentando Hugging Face...")
-            try:
-                response_hf = self.hf_client.chat.completions.create(
+                response = self.hf_client.chat.completions.create(
                     model="Qwen/Qwen2.5-72B-Instruct",
-                    messages=[
-                        {"role": "system", "content": self.system_instruction},
-                        {"role": "user", "content": prompt}
-                    ],
-                    max_tokens=1200
+                    messages=[{"role": "system", "content": self.system_instruction},
+                              {"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}, max_tokens=900,
                 )
-                content_hf = response_hf.choices[0].message.content
-                match = re.search(r'\{[\s\S]*\}', content_hf)
-                if match:
-                    data = json.loads(match.group(0))
-                    return self._normalizar_tags(data.get("tags", []))
-            except Exception as e_hf:
-                print(f"[Pipe] ⚠️ Error en HF ({e_hf}). Usando lista de respaldo.")
-        return []
+                return json.loads(response.choices[0].message.content).get("tags", [])
+            except Exception as hf_error:
+                print(f"[Pipe] Fallback remoto no disponible: {hf_error}")
+                return []
 
-    def generar_tags(self, resumen_texto, tendencias=None, camilo=None):
-        """
-        Nuevo Pipeline Inverso (Sin Alucinaciones):
-          1. Camilo ya entregó una lista (tendencias) de términos 100% reales extraídos de Google.
-          2. LLM funciona como filtro: selecciona los 12 mejores términos de esa lista estricta.
-        """
-        TARGET = 12
+    def _fallback_del_texto(self, texto):
+        """Construye pocas etiquetas trazables al texto si el modelo no responde."""
+        candidatos = []
+        # Entidades de dos o más palabras primero; suelen ser las etiquetas más útiles.
+        candidatos.extend(re.findall(r"\b[A-ZÁÉÍÓÚÑ][\wáéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÑ][\wáéíóúüñ]+){1,3}\b", texto))
+        frecuencias = {}
+        palabras = self._palabras_significativas(texto)
+        for palabra in palabras:
+            frecuencias[palabra] = frecuencias.get(palabra, 0) + 1
+        candidatos.extend([p for p, _ in sorted(frecuencias.items(), key=lambda item: (-item[1], item[0]))])
+        return self._normalizar_y_filtrar(candidatos, texto, limite=8)
 
-        if tendencias is None:
-            tendencias = ["noticias colombia", "actualidad", "última hora colombia", "tendencias hoy"]
+    def extraer_keywords_principales(self, texto_crudo):
+        """Compatibilidad con Camilo: semillas extraídas del texto, sin fallback temático fijo."""
+        return self._fallback_del_texto(texto_crudo)[:4]
 
-        print(f"[Pipe] 🏷️  Seleccionando los mejores {TARGET} tags de una piscina de {len(tendencias)} términos reales...")
-
-        if not tendencias:
-            print("[Pipe] ⚠️ No hay tendencias reales. Se usarán tags genéricos como fallback.")
-            tendencias = ["noticias colombia", "actualidad", "última hora colombia", "tendencias hoy"]
-
-        prompt = (
-            f"Basado en este texto: '{resumen_texto[:600]}...'\n\n"
-            f"Tengo esta lista EXACTA de búsquedas reales de usuarios en Google Colombia:\n"
-            f"{json.dumps(tendencias, ensure_ascii=False)}\n\n"
-            f"Tu ÚNICA tarea es SELECCIONAR los {TARGET} términos MÁS RELEVANTES y CORTOS (máximo 3 o 4 palabras cada uno).\n"
-            f"REGLA DE ORO:\n"
-            f"1. PROHIBIDO INVENTAR TAGS. Debes copiar exactamente los términos de la lista proporcionada.\n"
-            f"2. NUNCA selecciones frases largas ni oraciones.\n"
-            f"3. Selecciona entidades concretas, marcas, productos o búsquedas reales muy populares (ej: 'papel aluminio microondas', 'aluminio en microondas', 'microondas haceb').\n\n"
-            f"Responde ÚNICAMENTE con un JSON que contenga el arreglo bajo la llave 'tags'."
-        )
-
-        seleccionados = self._llamar_llm_candidatos(prompt)
-        
-        # Validar y filtrar estrictamente sobre tendencias reales
-        tags_finales = []
-        tendencias_map = {t.lower().strip(): t for t in tendencias}
-        
-        for t in seleccionados:
-            t_clean = t.lower().strip()
-            # Si el tag seleccionado existe en la lista de búsquedas reales de Google
-            if t_clean in tendencias_map:
-                real_tag = tendencias_map[t_clean]
-                # Validar que no supere 4 palabras
-                if len(real_tag.split()) <= 4:
-                    tags_finales.append({
-                        "tag": real_tag,
-                        "tipo": "Tendencia verificada",
-                        "justificacion": "Búsqueda real verificada en Google Colombia (Google Suggest/Trends)"
-                    })
-        
-        # Si faltan para llegar a 12, rellenar directamente desde tendencias reales cortas
-        if len(tags_finales) < TARGET:
-            for t in tendencias:
-                if len(t.split()) <= 4:
-                    already_added = any(tf["tag"].lower() == t.lower() for tf in tags_finales)
-                    if not already_added:
-                        tags_finales.append({
-                            "tag": t,
-                            "tipo": "Tendencia verificada",
-                            "justificacion": "Búsqueda real verificada en Google Colombia (Google Suggest/Trends)"
-                        })
-                if len(tags_finales) >= TARGET:
-                    break
-
-        tags_finales = tags_finales[:TARGET]
-        cantidad = len(tags_finales)
-        print(f"[Pipe] ✅ ¡{cantidad} Tags finales reales (máx 3-4 palabras) seleccionados con éxito!")
-        return tags_finales
+    def generar_tags(self, texto_articulo, tendencias=None, camilo=None):
+        """Etiqueta desde el artículo completo; ``tendencias`` es deliberadamente secundario."""
+        print("[Pipe] Leyendo el artículo completo para generar tags editoriales...")
+        candidatos = self._llamar_llm(f"ARTÍCULO COMPLETO:\n{texto_articulo}")
+        tags = self._normalizar_y_filtrar(candidatos, texto_articulo)
+        if not tags:
+            tags = self._fallback_del_texto(texto_articulo)
+        resultado = [{
+            "tag": tag,
+            "tipo": "Etiqueta editorial",
+            "justificacion": "Etiqueta validada contra el contenido del artículo",
+        } for tag in tags]
+        print(f"[Pipe] {len(resultado)} tags pertinentes generados.")
+        return resultado
 
     def run(self, texto, slug=None, tendencias=None):
-        """Método de compatibilidad con app_web."""
-        print(f"[Pipe] Generando tags para: {slug or 'nota'}...")
-        tags = self.generar_tags(texto, tendencias=tendencias)
-        return {"texto": texto, "tags": tags}
+        return {"texto": texto, "tags": self.generar_tags(texto, tendencias=tendencias)}
+
 
 PipeAgent = Pipe
-
-

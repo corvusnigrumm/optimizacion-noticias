@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Corvus Nigrum | Agent Control Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+        
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .terminal-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .terminal-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        
+        .glow-indigo {
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .animate-pulse-dot {
+            animation: pulse-dot 2s infinite ease-in-out;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#131b2e",
+                        "primary": "#000000",
+                        "background": "#f7f9fb",
+                        "outline": "#76777d",
+                        "surface-variant": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#bec6e0",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-secondary-container": "#57657b",
+                        "on-surface": "#191c1e",
+                        "surface-dim": "#d8dadc",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#d5e3fd",
+                        "outline-variant": "#c6c6cd",
+                        "tertiary-fixed-dim": "#c0c1ff",
+                        "inverse-surface": "#2d3133",
+                        "tertiary-fixed": "#e1e0ff",
+                        "surface-container-low": "#f2f4f6",
+                        "error": "#ba1a1a",
+                        "secondary": "#515f74",
+                        "surface-bright": "#f7f9fb",
+                        "tertiary-container": "#07006c",
+                        "on-primary-container": "#7c839b",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-tertiary-fixed-variant": "#2f2ebe",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#7073ff",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "surface-tint": "#565e74",
+                        "primary-fixed": "#dae2fd",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#eceef0",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#45464d",
+                        "tertiary": "#000000",
+                        "inverse-primary": "#bec6e0",
+                        "on-primary-fixed": "#131b2e",
+                        "on-primary": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed": "#07006c",
+                        "on-background": "#191c1e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-margin": "40px",
+                        "xs": "8px",
+                        "md": "16px",
+                        "sm": "12px",
+                        "base": "4px",
+                        "gutter": "20px",
+                        "lg": "24px",
+                        "xl": "32px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Geist"],
+                        "headline-display": ["Geist"],
+                        "body-md": ["Geist"],
+                        "mono-label": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-sm": ["Geist"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "mono-label": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md selection:bg-secondary-container">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-full z-40 h-screen w-64 border-r border-outline-variant bg-surface">
+<div class="p-lg flex flex-col h-full">
+<div class="mb-xl">
+<img alt="Corvus Nigrum Logo" class="h-10 mb-sm object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbIRrp-IA83anOfSGiV_uy3ktgFtlKUci56S5LlozxH_ChBooSq9vo0EPEu7snCcTI2gV-UECsm0ZAkJ2mBnMWc5quiQukWL67tg1EYwIsqbSTT6jRxaVHng4LPbOtcQwhzlvgIP6qtdzo6SYks4X4AxYbP9bekdMs1SGRPCP32ng3Lk5G1BEPaL07FTdNQI16uTYx-asqJ_W4OMtaWGKskmqOXift2lPB13SawPuSGuycEYvsJHDC6lmrxlOFlFbIlS0"/>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Corvus Nigrum</h1>
+<p class="font-body-sm text-body-sm text-secondary">Optimization Engine</p>
+</div>
+<nav class="space-y-xs flex-grow">
+<a class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md text-body-md">Optimization Hub</span>
+</a>
+<a class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="font-body-md text-body-md">SEO Trends</span>
+</a>
+<a class="flex items-center gap-md text-primary font-bold bg-secondary-container rounded-lg p-md transition-transform active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-body-md text-body-md">Agent Logs</span>
+</a>
+<a class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-md border-t border-outline-variant">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center">
+<span class="text-[10px] text-white font-bold">CN</span>
+</div>
+<div>
+<p class="text-label-md font-label-md text-primary font-bold">System Admin</p>
+<p class="text-[10px] text-secondary">v4.2.0-stable</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Top App Bar -->
+<header class="fixed top-0 right-0 left-64 h-16 flex justify-between items-center px-lg z-30 bg-surface-container-lowest border-b border-outline-variant">
+<div class="flex items-center gap-lg flex-1">
+<h2 class="font-headline-md text-headline-md font-black tracking-tight text-primary">Agent Control Center</h2>
+<div class="relative max-w-md w-full">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-full py-xs pl-xl pr-md text-body-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all" placeholder="Query agent activity..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-xs text-secondary hover:text-primary transition-colors active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-xs text-secondary hover:text-primary transition-colors active:opacity-80">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="w-px h-6 bg-outline-variant mx-xs"></div>
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot"></div>
+<span class="text-label-md font-label-md text-green-600">LIVE CONNECTION</span>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 mt-16 p-lg bg-surface min-h-screen">
+<div class="max-w-[1600px] mx-auto grid grid-cols-12 gap-lg">
+<!-- Technical Metrics Bar -->
+<section class="col-span-12 grid grid-cols-4 gap-md">
+<div class="bg-white border border-outline-variant rounded-xl p-md flex items-center justify-between">
+<div>
+<p class="text-label-md font-label-md text-secondary mb-1">AGGREGATE THROUGHPUT</p>
+<p class="font-headline-md text-headline-md font-bold text-primary">1,428 <span class="text-body-sm font-normal text-secondary">OPS/SEC</span></p>
+</div>
+<span class="material-symbols-outlined text-primary-container bg-surface-container-low p-sm rounded-lg">speed</span>
+</div>
+<div class="bg-white border border-outline-variant rounded-xl p-md flex items-center justify-between">
+<div>
+<p class="text-label-md font-label-md text-secondary mb-1">AVG LATENCY</p>
+<p class="font-headline-md text-headline-md font-bold text-primary">12.4 <span class="text-body-sm font-normal text-secondary">MS</span></p>
+</div>
+<span class="material-symbols-outlined text-primary-container bg-surface-container-low p-sm rounded-lg">timer</span>
+</div>
+<div class="bg-white border border-outline-variant rounded-xl p-md flex items-center justify-between">
+<div>
+<p class="text-label-md font-label-md text-secondary mb-1">ACTIVE AGENTS</p>
+<p class="font-headline-md text-headline-md font-bold text-primary">4 <span class="text-body-sm font-normal text-secondary">/ 4 ONLINE</span></p>
+</div>
+<span class="material-symbols-outlined text-primary-container bg-surface-container-low p-sm rounded-lg">robot_2</span>
+</div>
+<div class="bg-white border border-outline-variant rounded-xl p-md flex items-center justify-between">
+<div>
+<p class="text-label-md font-label-md text-secondary mb-1">OPTIMIZATION DELTA</p>
+<p class="font-headline-md text-headline-md font-bold text-green-600">+24.8%</p>
+</div>
+<span class="material-symbols-outlined text-green-600 bg-green-50 p-sm rounded-lg">trending_up</span>
+</div>
+</section>
+<!-- Agent Grid -->
+<section class="col-span-12 lg:col-span-8 grid grid-cols-2 gap-lg">
+<!-- Agent: Adriana -->
+<div class="bg-white border border-outline-variant rounded-xl overflow-hidden flex flex-col group hover:border-primary transition-colors">
+<div class="p-md flex items-center gap-md border-b border-outline-variant">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a sharp, intelligent female tech leader named Adriana. She has a minimalist, high-end corporate aesthetic, wearing a dark blazer over a white shirt. The background is a clean, neutral grey studio setting with soft lighting that highlights her authoritative and analytical expression, fitting a premium optimization engine interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRkQqTRXhH_Ec_qEP6ajrzw3AhUA2fyAA3TjxHu0iRS-zA_5DW7kO994BIOE9GGm735HPKAJ_JQhQBoe3D6zBbjP5kP73wZ7fWD0-LHCl6IY9isoNOLDfeBa0XGClMlLHo9kkPBTWJL_Gn5NgI3s8-NPe0kfjX-IeWkXU178SkKwa81VWFFmoWAxTJI_3Mz0VXunGDoyZ9L5FgdcpnuHZb8HXtBTS3MpSY_v92e0fTyqmliM4nfC6bHA"/>
+</div>
+<div class="flex-1">
+<h3 class="font-body-md font-bold text-primary">Adriana</h3>
+<p class="text-label-md font-label-md text-secondary">CONTENT SYNCHRONIZER</p>
+</div>
+<span class="px-xs py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded">BUSY</span>
+</div>
+<div class="p-md grid grid-cols-2 gap-sm bg-surface-container-low/30">
+<div class="text-[11px]">
+<p class="text-secondary">Throughput</p>
+<p class="font-bold">412 ops/s</p>
+</div>
+<div class="text-[11px]">
+<p class="text-secondary">Current Task</p>
+<p class="font-bold truncate">Meta-tag clustering...</p>
+</div>
+</div>
+<div class="p-md flex-grow font-mono text-[11px] leading-relaxed overflow-hidden">
+<p class="text-slate-400">09:12:04 [INFO] Analyzing keyword density...</p>
+<p class="text-slate-400">09:12:05 [INFO] Re-indexing sub-directories</p>
+<p class="text-primary-container font-medium">09:12:06 [AUTH] Cluster sequence verified</p>
+</div>
+</div>
+<!-- Agent: Camilo -->
+<div class="bg-white border border-outline-variant rounded-xl overflow-hidden flex flex-col group hover:border-primary transition-colors">
+<div class="p-md flex items-center gap-md border-b border-outline-variant">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional portrait of a tech specialist named Camilo, focused and precise. He is in a modern office with glass walls, reflecting high-tech data visualization screens in the background. The lighting is crisp and cool-toned, emphasizing his role as an analytical expert. The image follows a high-performance corporate aesthetic with a professional mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcW4xdVSPeCYpy7AwQMoLqUWOwLZ05YEyLABKn7Pg_R-0tqg6gDggO6b3RUxsLRI_ByVehqnAJhCk-NnhpT5JsJOZLxGaZRnGr5pNJ6rT6K6vc0HPgHH4GuE4wgdLs3JJuYrfJ1qRU0EctytYt0hu2j82Zvig3ZJ5kEKnQX5KbkRcO0Kr-ruehlpepGKBuKaf5dlTRmgdkwDGnrNv3lM8d9LXJjuEEjaTNHDZYkFTNGVTh6G9wviOAYg"/>
+</div>
+<div class="flex-1">
+<h3 class="font-body-md font-bold text-primary">Camilo</h3>
+<p class="text-label-md font-label-md text-secondary">LINK ARCHITECT</p>
+</div>
+<span class="px-xs py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded">IDLE</span>
+</div>
+<div class="p-md grid grid-cols-2 gap-sm bg-surface-container-low/30">
+<div class="text-[11px]">
+<p class="text-secondary">Throughput</p>
+<p class="font-bold">288 ops/s</p>
+</div>
+<div class="text-[11px]">
+<p class="text-secondary">Current Task</p>
+<p class="font-bold truncate">Graph validation complete</p>
+</div>
+</div>
+<div class="p-md flex-grow font-mono text-[11px] leading-relaxed overflow-hidden">
+<p class="text-slate-400">09:10:45 [SCAN] Backlink integrity verified</p>
+<p class="text-slate-400">09:11:12 [SUCCESS] Graph re-mapped</p>
+<p class="text-green-600 font-medium">09:11:58 [DONE] Standby for instructions</p>
+</div>
+</div>
+<!-- Agent: Valentina -->
+<div class="bg-white border border-outline-variant rounded-xl overflow-hidden flex flex-col group hover:border-primary transition-colors">
+<div class="p-md flex items-center gap-md border-b border-outline-variant">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A portrait of Valentina, a digital optimization engineer. She is portrayed in a workspace with a large window showing a modern urban skyline at dusk. The indoor lighting is warm but professional, casting a soft glow on her thoughtful and highly capable face. The style is sharp, clean, and developer-centric, consistent with a high-end technical dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqDyr70lqLYzweptOP5fetU9OhjJdBUPSrf3roQUXnE924dVhhWZo6ixuXWMDU_75aGqiI56Lv2deSqQSDgh_xhLYb86n--IJyCIe1tq-mJ59DSkcku_P9EAt9usTW9Nfd4WxOOwngngOvjBmTHTHiENhZv_fzqawcluuYerkex6hRw0a_QAyRLjOwa51w6ZRcTGwvd-jWY44KHxID6dhuMjSePDjdRdhdz2soWVJjF-2cpfHBgSD0sg"/>
+</div>
+<div class="flex-1">
+<h3 class="font-body-md font-bold text-primary">Valentina</h3>
+<p class="text-label-md font-label-md text-secondary">SEMANTIC PARSER</p>
+</div>
+<span class="px-xs py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">CRUNCHING</span>
+</div>
+<div class="p-md grid grid-cols-2 gap-sm bg-surface-container-low/30">
+<div class="text-[11px]">
+<p class="text-secondary">Throughput</p>
+<p class="font-bold">592 ops/s</p>
+</div>
+<div class="text-[11px]">
+<p class="text-secondary">Current Task</p>
+<p class="font-bold truncate">Vectorizing corpus data...</p>
+</div>
+</div>
+<div class="p-md flex-grow font-mono text-[11px] leading-relaxed overflow-hidden">
+<p class="text-slate-400">09:12:08 [VEC] Dimensionality reduction 84%</p>
+<p class="text-slate-400">09:12:09 [INFO] Cluster 7 centroid stable</p>
+<p class="text-indigo-600 font-medium">09:12:10 [EXEC] Semantic shift detected</p>
+</div>
+</div>
+<!-- Agent: Pipe -->
+<div class="bg-white border border-outline-variant rounded-xl overflow-hidden flex flex-col group hover:border-primary transition-colors">
+<div class="p-md flex items-center gap-md border-b border-outline-variant">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A portrait of Pipe, a technical system operator for an advanced optimization engine. He is wearing a dark tech-fabric shirt, looking directly into the camera with a confident, problem-solving expression. The environment is a sleek, minimalist command center with subtle blue ambient lighting accents. The overall image quality is cinematic and professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGuFrEcFgTvqITYYHeIeJxbHITSv1vGve_S3cV2emWydqQqkSQejUhBR6t4waW2KdRU-qojy5FLdtmAGJPvsa8UHIMnBPbYfZxdozgkbjKYEomIzIUku1su7koR_1IfBHQ2STOON8aCLhVFOM8tUw5HzjMm0NsDHnuupMyz3YGKK8g_X4GxKmILT2lt6D8CkVj5ZeXBfWsC_EGuHtm7Ff73wGvrgGw2mZ1jdc5CUk1ebGbHXoEXQxTCg"/>
+</div>
+<div class="flex-1">
+<h3 class="font-body-md font-bold text-primary">Pipe</h3>
+<p class="text-label-md font-label-md text-secondary">SYSTEM OVERSEER</p>
+</div>
+<span class="px-xs py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded">STABLE</span>
+</div>
+<div class="p-md grid grid-cols-2 gap-sm bg-surface-container-low/30">
+<div class="text-[11px]">
+<p class="text-secondary">Throughput</p>
+<p class="font-bold">136 ops/s</p>
+</div>
+<div class="text-[11px]">
+<p class="text-secondary">Current Task</p>
+<p class="font-bold truncate">Log aggregation active</p>
+</div>
+</div>
+<div class="p-md flex-grow font-mono text-[11px] leading-relaxed overflow-hidden">
+<p class="text-slate-400">09:11:59 [SYS] Buffer health 100%</p>
+<p class="text-slate-400">09:12:02 [LOG] Rotating archive 402</p>
+<p class="text-primary font-medium">09:12:11 [OK] No anomalies reported</p>
+</div>
+</div>
+</section>
+<!-- Sidebar Panel: Logs & Health -->
+<section class="col-span-12 lg:col-span-4 space-y-lg">
+<!-- Session Health Graph -->
+<div class="bg-white border border-outline-variant rounded-xl p-md">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-body-md font-bold text-primary">Optimization Delta</h3>
+<span class="text-label-md text-secondary">24H RANGE</span>
+</div>
+<div class="h-40 w-full relative flex items-end gap-1">
+<!-- Simulated Bar Chart -->
+<div class="flex-1 bg-surface-container-high rounded-t-sm transition-all hover:bg-primary-fixed-dim" style="height: 40%"></div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm transition-all hover:bg-primary-fixed-dim" style="height: 55%"></div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm transition-all hover:bg-primary-fixed-dim" style="height: 45%"></div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm transition-all hover:bg-primary-fixed-dim" style="height: 70%"></div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm transition-all hover:bg-primary-fixed-dim" style="height: 85%"></div>
+<div class="flex-1 bg-surface-container-high rounded-t-sm transition-all hover:bg-primary-fixed-dim" style="height: 60%"></div>
+<div class="flex-1 bg-primary rounded-t-sm transition-all" style="height: 95%"></div>
+</div>
+<div class="mt-md pt-md border-t border-outline-variant flex justify-between">
+<div class="text-center">
+<p class="text-[10px] text-secondary">PEAK DELTA</p>
+<p class="text-body-sm font-bold">+31.4%</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-secondary">STABILITY</p>
+<p class="text-body-sm font-bold">99.98%</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-secondary">SESSIONS</p>
+<p class="text-body-sm font-bold">2,412</p>
+</div>
+</div>
+</div>
+<!-- Global Code Terminal -->
+<div class="bg-primary-container text-primary-fixed-dim rounded-xl overflow-hidden flex flex-col h-[400px]">
+<div class="bg-black/40 px-md py-xs flex items-center justify-between border-b border-white/10">
+<div class="flex gap-1.5">
+<div class="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-amber-500/50"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
+</div>
+<span class="text-[10px] font-mono opacity-60">system_terminal.sh</span>
+</div>
+<div class="p-md font-mono text-[11px] leading-loose terminal-scroll overflow-y-auto flex-grow">
+<p class="text-indigo-400">root@corvus-nigrum:~# agentctl status --all</p>
+<p class="text-white mt-1">Checking agents connectivity...</p>
+<p class="text-green-400">[CONNECTED] adriana_node_01</p>
+<p class="text-green-400">[CONNECTED] camilo_node_04</p>
+<p class="text-green-400">[CONNECTED] valentina_node_02</p>
+<p class="text-green-400">[CONNECTED] pipe_node_system</p>
+<p class="mt-2 text-white">Aggregating real-time metrics...</p>
+<p class="text-slate-400">&gt;&gt; Latency: 12.4ms (Target: &lt; 20ms)</p>
+<p class="text-slate-400">&gt;&gt; Throughput: 1,428 req/sec</p>
+<p class="text-slate-400">&gt;&gt; Memory Usage: 14.2 GB / 64 GB</p>
+<p class="mt-2 text-amber-300">[WARN] Semantic parsing overhead rising on valentina_node_02</p>
+<p class="text-white">Auto-scaling sequence initiated...</p>
+<p class="text-indigo-400">root@corvus-nigrum:~# _</p>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Bottom Navigation (Action Bar) -->
+<nav class="fixed bottom-0 right-0 left-64 z-50 flex justify-center items-center gap-xl h-20 px-xl bg-surface-container-high shadow-lg border-t border-outline-variant">
+<button class="flex flex-col items-center justify-center text-secondary px-xl py-xs hover:bg-surface-variant transition-all active:scale-95 duration-150">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-md text-label-md">Export DOCX</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary px-xl py-xs hover:bg-surface-variant transition-all active:scale-95 duration-150">
+<span class="material-symbols-outlined">code</span>
+<span class="font-label-md text-label-md">Export HTML</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-xl px-xl py-xs transition-all active:scale-95 duration-150 shadow-md">
+<span class="material-symbols-outlined">publish</span>
+<span class="font-label-md text-label-md">CMS Publish</span>
+</button>
+</nav>
+<script>
+        // Micro-interactions for terminal-like text effect
+        document.addEventListener('DOMContentLoaded', () => {
+            const terminal = document.querySelector('.terminal-scroll');
+            setInterval(() => {
+                const p = document.createElement('p');
+                p.className = 'text-slate-400 text-[11px] font-mono leading-loose';
+                const now = new Date().toLocaleTimeString();
+                const agents = ['ADRIANA', 'CAMILO', 'VALENTINA', 'PIPE'];
+                const agent = agents[Math.floor(Math.random() * agents.length)];
+                p.innerText = `${now} [AUTO] ${agent} heartbeat acknowledgment sent.`;
+                terminal.appendChild(p);
+                terminal.scrollTop = terminal.scrollHeight;
+                
+                // Keep only last 20 messages
+                if (terminal.children.length > 20) {
+                    terminal.removeChild(terminal.children[terminal.children.length - 20]);
+                }
+            }, 5000);
+        });
+    </script>
+</body></html>

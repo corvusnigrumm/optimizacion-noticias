@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Corvus Nigrum - Dashboard de Optimización</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+        
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        body {
+            background-color: #f7f9fb;
+            font-family: 'Geist', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
+        }
+
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
+
+        .agent-pulse {
+            position: relative;
+        }
+        .agent-pulse::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border: 2px solid white;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#131b2e",
+                        "primary": "#000000",
+                        "background": "#f7f9fb",
+                        "outline": "#76777d",
+                        "surface-variant": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#bec6e0",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-secondary-container": "#57657b",
+                        "on-surface": "#191c1e",
+                        "surface-dim": "#d8dadc",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#d5e3fd",
+                        "outline-variant": "#c6c6cd",
+                        "tertiary-fixed-dim": "#c0c1ff",
+                        "inverse-surface": "#2d3133",
+                        "tertiary-fixed": "#e1e0ff",
+                        "surface-container-low": "#f2f4f6",
+                        "error": "#ba1a1a",
+                        "secondary": "#515f74",
+                        "surface-bright": "#f7f9fb",
+                        "tertiary-container": "#07006c",
+                        "on-primary-container": "#7c839b",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-tertiary-fixed-variant": "#2f2ebe",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#7073ff",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "surface-tint": "#565e74",
+                        "primary-fixed": "#dae2fd",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#eceef0",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#45464d",
+                        "tertiary": "#000000",
+                        "inverse-primary": "#bec6e0",
+                        "on-primary-fixed": "#131b2e",
+                        "on-primary": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed": "#07006c",
+                        "on-background": "#191c1e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-margin": "40px",
+                        "xs": "8px",
+                        "md": "16px",
+                        "sm": "12px",
+                        "base": "4px",
+                        "gutter": "20px",
+                        "lg": "24px",
+                        "xl": "32px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Geist"],
+                        "headline-display": ["Geist"],
+                        "body-md": ["Geist"],
+                        "mono-label": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-sm": ["Geist"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "mono-label": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-full z-40 h-screen w-64 border-r border-outline-variant bg-surface">
+<div class="p-lg flex flex-col h-full">
+<div class="mb-xl">
+<img alt="Corvus Nigrum Logo" class="h-10 w-auto mb-xs" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBChC_g6EGs8D204Nu5jmmJVYrl4ffpANA3BG1L0baAh_pAr7cqZQES9LB1COZ6QI46h3k8HHa0cmHE0cgXyuhXBMHfHVrmafvLkk2TNf_5ezSqKcTBJ91ONo0IAssTrI7hgNEwLLTDgkVjpqECpUYR1J3sq9QypoHabhNEVNgzzqcVdGVrbW4KcpI47mUTk6h1zA__3ySAdLZJraj0DSdj3V8VrWdLpQAeb9c6-bKNSeYLeVZTTKHSz73INxRGUM4MxS4"/>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Corvus Nigrum</h1>
+<p class="font-body-sm text-body-sm text-secondary">Optimization Engine</p>
+</div>
+<nav class="space-y-xs flex-1">
+<a class="flex items-center gap-md text-primary font-bold bg-secondary-container rounded-lg p-md transition-transform active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md">Optimization Hub</span>
+</a>
+<a class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="font-body-md">SEO Trends</span>
+</a>
+<a class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-body-md">Agent Logs</span>
+</a>
+</nav>
+<div class="mt-auto pt-lg border-t border-outline-variant">
+<a class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md">Settings</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Top App Bar -->
+<header class="fixed top-0 right-0 left-64 h-16 flex justify-between items-center px-lg z-30 bg-surface-container-lowest border-b border-outline-variant">
+<div class="flex items-center gap-md w-1/3">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-full text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/10" placeholder="Search pipeline, agents, or articles..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-lg">
+<button class="relative p-2 text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="flex items-center gap-md pl-md border-l border-outline-variant">
+<div class="text-right">
+<p class="font-label-md text-primary font-bold">Admin Panel</p>
+<p class="font-label-md text-secondary">Colombia Region</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-white font-bold">
+                    CN
+                </div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 pt-24 p-lg min-h-screen">
+<div class="max-w-[1400px] mx-auto">
+<!-- Header Section -->
+<div class="mb-xl flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Editorial Pipeline Monitoring</h2>
+<p class="font-body-md text-secondary">Real-time optimization status for Colombian media outlets.</p>
+</div>
+<button class="bg-primary text-on-primary px-lg py-sm rounded-lg font-bold flex items-center gap-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined">bolt</span>
+                    Run Global Optimization
+                </button>
+</div>
+<div class="bento-grid">
+<!-- SEO Boost Card -->
+<div class="col-span-12 md:col-span-4 glass-card p-lg rounded-xl flex flex-col justify-between overflow-hidden relative group">
+<div class="absolute top-0 right-0 p-lg opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined !text-6xl">show_chart</span>
+</div>
+<div>
+<span class="font-label-md text-secondary uppercase tracking-widest">Performance Metrics</span>
+<h3 class="font-headline-md text-headline-md mt-xs">Average SEO Boost</h3>
+</div>
+<div class="mt-xl">
+<span class="text-5xl font-black text-primary">+28.4%</span>
+<div class="flex items-center gap-xs text-green-600 mt-xs">
+<span class="material-symbols-outlined !text-sm">arrow_upward</span>
+<span class="font-label-md">12% higher than last week</span>
+</div>
+</div>
+</div>
+<!-- Projected Discover Reach Card -->
+<div class="col-span-12 md:col-span-4 glass-card p-lg rounded-xl flex flex-col justify-between bg-primary text-white">
+<div>
+<span class="font-label-md text-outline-variant uppercase tracking-widest">Forecast</span>
+<h3 class="font-headline-md text-headline-md mt-xs">Discover Reach</h3>
+</div>
+<div class="mt-xl">
+<span class="text-5xl font-black">4.2M</span>
+<p class="font-body-sm text-outline-variant mt-xs">Projected impressions in Colombia (24h)</p>
+</div>
+<div class="mt-md w-full bg-white/10 h-1 rounded-full overflow-hidden">
+<div class="bg-white h-full w-3/4"></div>
+</div>
+</div>
+<!-- Agent Status List -->
+<div class="col-span-12 md:col-span-4 glass-card p-lg rounded-xl">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-headline-md text-headline-md">AI Agents</h3>
+<span class="bg-green-100 text-green-700 px-sm py-1 rounded-full font-label-md">All Systems Live</span>
+</div>
+<div class="space-y-md">
+<div class="flex items-center justify-between p-sm border border-outline-variant rounded-lg hover:border-secondary transition-colors cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center agent-pulse">
+<span class="font-bold text-blue-700">A</span>
+</div>
+<div>
+<p class="font-body-sm font-bold">Adriana</p>
+<p class="font-label-md text-secondary">Analyzing El Tiempo...</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</div>
+<div class="flex items-center justify-between p-sm border border-outline-variant rounded-lg hover:border-secondary transition-colors cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center agent-pulse">
+<span class="font-bold text-purple-700">C</span>
+</div>
+<div>
+<p class="font-body-sm font-bold">Camilo</p>
+<p class="font-label-md text-secondary">Semantic Mapping</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</div>
+<div class="flex items-center justify-between p-sm border border-outline-variant rounded-lg hover:border-secondary transition-colors cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center agent-pulse">
+<span class="font-bold text-orange-700">V</span>
+</div>
+<div>
+<p class="font-body-sm font-bold">Valentina</p>
+<p class="font-label-md text-secondary">Headline A/B Testing</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</div>
+</div>
+</div>
+<!-- Recent Articles Feed -->
+<div class="col-span-12 md:col-span-8 glass-card rounded-xl overflow-hidden">
+<div class="p-lg border-b border-outline-variant flex justify-between items-center bg-white">
+<h3 class="font-headline-md text-headline-md">Optimization Pipeline</h3>
+<div class="flex gap-sm">
+<button class="text-label-md px-md py-1 border border-outline-variant rounded-full hover:bg-surface-container transition-colors">Semana</button>
+<button class="text-label-md px-md py-1 border border-outline-variant rounded-full hover:bg-surface-container transition-colors">El Tiempo</button>
+<button class="text-label-md px-md py-1 border border-outline-variant rounded-full hover:bg-surface-container transition-colors">El Espectador</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low text-secondary font-label-md">
+<tr>
+<th class="px-lg py-md">Article</th>
+<th class="px-lg py-md">Source</th>
+<th class="px-lg py-md">SEO Score</th>
+<th class="px-lg py-md">Agent</th>
+<th class="px-lg py-md">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant font-body-sm">
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-lg py-md">
+<p class="font-bold text-primary">Crisis ministerial: ¿Qué pasará con la reforma?</p>
+<p class="text-secondary text-xs">Updated 2m ago</p>
+</td>
+<td class="px-lg py-md">
+<span class="bg-yellow-50 text-yellow-800 px-sm py-0.5 rounded border border-yellow-200">Semana</span>
+</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<div class="w-12 h-1.5 bg-outline-variant rounded-full overflow-hidden">
+<div class="bg-green-500 h-full w-[92%]"></div>
+</div>
+<span class="font-bold">92/100</span>
+</div>
+</td>
+<td class="px-lg py-md">Adriana</td>
+<td class="px-lg py-md">
+<button class="text-primary hover:underline font-bold">Review</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-lg py-md">
+<p class="font-bold text-primary">Precios de la canasta básica en Bogotá...</p>
+<p class="text-secondary text-xs">Updated 15m ago</p>
+</td>
+<td class="px-lg py-md">
+<span class="bg-blue-50 text-blue-800 px-sm py-0.5 rounded border border-blue-200">El Tiempo</span>
+</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<div class="w-12 h-1.5 bg-outline-variant rounded-full overflow-hidden">
+<div class="bg-orange-500 h-full w-[65%]"></div>
+</div>
+<span class="font-bold">65/100</span>
+</div>
+</td>
+<td class="px-lg py-md">Valentina</td>
+<td class="px-lg py-md">
+<button class="text-primary hover:underline font-bold">Optimize</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="px-lg py-md">
+<p class="font-bold text-primary">Selección Colombia: Convocatoria oficial</p>
+<p class="text-secondary text-xs">Updated 1h ago</p>
+</td>
+<td class="px-lg py-md">
+<span class="bg-red-50 text-red-800 px-sm py-0.5 rounded border border-red-200">El Espectador</span>
+</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<div class="w-12 h-1.5 bg-outline-variant rounded-full overflow-hidden">
+<div class="bg-green-500 h-full w-[88%]"></div>
+</div>
+<span class="font-bold">88/100</span>
+</div>
+</td>
+<td class="px-lg py-md">Pipe</td>
+<td class="px-lg py-md">
+<button class="text-primary hover:underline font-bold">Review</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Colombia Real-time Trends -->
+<div class="col-span-12 md:col-span-4 glass-card p-lg rounded-xl">
+<h3 class="font-headline-md text-headline-md mb-md">Trending in Colombia</h3>
+<div class="space-y-md">
+<div class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-md">
+<span class="font-headline-md text-outline-variant group-hover:text-primary transition-colors">01</span>
+<div>
+<p class="font-body-sm font-bold group-hover:underline">Reforma Laboral 2024</p>
+<p class="font-label-md text-secondary">85k searches • High Intent</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-green-500">trending_up</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-md">
+<span class="font-headline-md text-outline-variant group-hover:text-primary transition-colors">02</span>
+<div>
+<p class="font-body-sm font-bold group-hover:underline">Clima en Bogotá hoy</p>
+<p class="font-label-md text-secondary">62k searches • Recurring</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary">horizontal_rule</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-md">
+<span class="font-headline-md text-outline-variant group-hover:text-primary transition-colors">03</span>
+<div>
+<p class="font-body-sm font-bold group-hover:underline">Eliminatorias CONMEBOL</p>
+<p class="font-label-md text-secondary">45k searches • Rising</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-green-500">trending_up</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-md">
+<span class="font-headline-md text-outline-variant group-hover:text-primary transition-colors">04</span>
+<div>
+<p class="font-body-sm font-bold group-hover:underline">Pico y Placa Regional</p>
+<p class="font-label-md text-secondary">38k searches • High Volume</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary">horizontal_rule</span>
+</div>
+</div>
+<button class="w-full mt-lg py-sm border border-outline-variant rounded-lg font-label-md font-bold hover:bg-surface-container transition-colors">View All Trends</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Action Bar (Fixed for Export) -->
+<footer class="fixed bottom-0 right-0 left-64 z-50 flex justify-center items-center gap-xl h-20 px-xl bg-surface-container-high border-t border-outline-variant shadow-lg rounded-t-xl">
+<button class="flex flex-col items-center justify-center text-secondary px-xl py-xs hover:bg-surface-variant transition-all active:scale-95">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-md text-label-md">Export DOCX</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary px-xl py-xs hover:bg-surface-variant transition-all active:scale-95">
+<span class="material-symbols-outlined">code</span>
+<span class="font-label-md text-label-md">Export HTML</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-xl px-xl py-xs active:scale-95 duration-150 shadow-md">
+<span class="material-symbols-outlined">publish</span>
+<span class="font-label-md text-label-md">CMS Publish</span>
+</button>
+</footer>
+<script>
+        // Simple micro-interaction for cards
+        document.querySelectorAll('.glass-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.transition = 'transform 0.2s ease-out';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Real-time update simulation
+        setInterval(() => {
+            const scoreElements = document.querySelectorAll('.font-bold.text-primary');
+            // Mocking dynamic updates
+        }, 5000);
+    </script>
+</body></html>

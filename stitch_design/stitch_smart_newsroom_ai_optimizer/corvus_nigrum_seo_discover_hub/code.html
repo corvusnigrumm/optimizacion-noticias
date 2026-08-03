@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Geist', sans-serif;
+            background-color: #f7f9fb;
+            color: #191c1e;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #E2E8F0;
+        }
+        .thermal-badge-hot {
+            background: linear-gradient(135deg, #ffdad6 0%, #ba1a1a 100%);
+            color: white;
+        }
+        .google-discover-feed {
+            scrollbar-width: none;
+        }
+        .google-discover-feed::-webkit-scrollbar {
+            display: none;
+        }
+        .active-nav-glow {
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.1);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#131b2e",
+                        "primary": "#000000",
+                        "background": "#f7f9fb",
+                        "outline": "#76777d",
+                        "surface-variant": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#bec6e0",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-secondary-container": "#57657b",
+                        "on-surface": "#191c1e",
+                        "surface-dim": "#d8dadc",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#d5e3fd",
+                        "outline-variant": "#c6c6cd",
+                        "tertiary-fixed-dim": "#c0c1ff",
+                        "inverse-surface": "#2d3133",
+                        "tertiary-fixed": "#e1e0ff",
+                        "surface-container-low": "#f2f4f6",
+                        "error": "#ba1a1a",
+                        "secondary": "#515f74",
+                        "surface-bright": "#f7f9fb",
+                        "tertiary-container": "#07006c",
+                        "on-primary-container": "#7c839b",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-tertiary-fixed-variant": "#2f2ebe",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#7073ff",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "surface-tint": "#565e74",
+                        "primary-fixed": "#dae2fd",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#eceef0",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#45464d",
+                        "tertiary": "#000000",
+                        "inverse-primary": "#bec6e0",
+                        "on-primary-fixed": "#131b2e",
+                        "on-primary": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed": "#07006c",
+                        "on-background": "#191c1e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-margin": "40px",
+                        "xs": "8px",
+                        "md": "16px",
+                        "sm": "12px",
+                        "base": "4px",
+                        "gutter": "20px",
+                        "lg": "24px",
+                        "xl": "32px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Geist"],
+                        "headline-display": ["Geist"],
+                        "body-md": ["Geist"],
+                        "mono-label": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-sm": ["Geist"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "mono-label": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full z-40 h-screen w-64 border-r border-outline-variant bg-surface">
+<div class="p-lg flex items-center gap-sm">
+<img alt="Corvus Nigrum Logo" class="h-10 w-10 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8BI7UKeDfXcWe4QH0bYbxJclhHzjT9vCyxd5AzYeZ__vva_UL31kqTLF2tCrHEHndHDQqS4FHUb376m5SP00y_LSixV-cP4_qos_jpvUCvfik4hCZV5Jv_rw4XyTFm_OYdSi8CS1msSRAOLrlfaYaVN0umNtZHPzlV7KXwCuvVLueiYTzanf1my_NddQ78qDsBzALbu4jyxCAHxkqnnFDx5JCL8i_mlIhEKpSKfskBE2tFPY8EDMZPkxLJ-Z4MIAaCmM"/>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Corvus Nigrum</h1>
+<p class="font-label-md text-label-md text-secondary">Optimization Engine</p>
+</div>
+</div>
+<nav class="mt-xl px-md space-y-xs">
+<div class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</div>
+<div class="flex items-center gap-md text-primary font-bold bg-secondary-container rounded-lg p-md active-nav-glow">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="font-body-md text-body-md">SEO Trends</span>
+</div>
+<div class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md text-body-md">Optimization Hub</span>
+</div>
+<div class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-body-md text-body-md">Agent Logs</span>
+</div>
+<div class="flex items-center gap-md text-secondary p-md hover:bg-surface-container-high transition-colors duration-200 rounded-lg cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</div>
+</nav>
+<div class="absolute bottom-0 w-full p-lg">
+<div class="p-md rounded-xl bg-primary-container text-white">
+<p class="font-label-md text-label-md opacity-70">SEO Health Index</p>
+<div class="flex items-end gap-xs mt-xs">
+<span class="font-headline-lg text-headline-lg">94.2</span>
+<span class="font-label-md text-label-md text-green-400 mb-1">+2.4%</span>
+</div>
+<div class="w-full bg-white/20 h-1 rounded-full mt-sm">
+<div class="bg-indigo-400 h-1 rounded-full" style="width: 94%"></div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 min-h-screen pb-32">
+<!-- Top App Bar Shell -->
+<header class="fixed top-0 right-0 left-64 h-16 flex justify-between items-center px-lg z-30 bg-surface-container-lowest border-b border-outline-variant">
+<div class="flex items-center gap-md">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="pl-xl pr-md py-xs bg-surface-container-low border border-outline-variant rounded-full font-body-sm text-body-sm focus:ring-1 focus:ring-primary outline-none w-64" placeholder="Search SEO Trends..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-lg">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-secondary cursor-pointer hover:text-primary transition-colors">notifications</span>
+<span class="material-symbols-outlined text-secondary cursor-pointer hover:text-primary transition-colors">help_outline</span>
+</div>
+<div class="h-8 w-8 rounded-full bg-primary-container border border-outline-variant flex items-center justify-center overflow-hidden">
+<img class="h-full w-full object-cover" data-alt="A sharp, minimalist close-up portrait of a digital agent profile icon. The aesthetic is monochromatic and professional, featuring high contrast and a subtle glowing rim light. The style is modern corporate with an obsidian and steel color palette, suitable for a high-performance optimization tool." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDf51ANHYtQsC1Ywv2ETE0H0Ldl23TXPzf7Cz9aJ_k9-cFNaQFaX4lAxELdtiqMNNJ336ZXTY1nvnwflbGH_lku-KURjo3QYUAD_G3qSP-66jT7YEDLk-e4TFMqrBBtFP8B1vnAWxS2l9dUar2MMzM76S4fbAHf7X9KaUlonPhQS1DFMWH6VxwZjlCb76Mav4oBSktx1EZo9zqmYyKTl8i8cYFOto6goonlDI8iAl3546F6STNdD01-5w"/>
+</div>
+</div>
+</header>
+<div class="pt-24 px-xl max-w-7xl mx-auto">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-xl">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">SEO &amp; Discover Hub</h2>
+<p class="font-body-md text-body-md text-secondary max-w-lg mt-xs">Real-time entity analysis and previsualization for high-performance content delivery.</p>
+</div>
+<button class="bg-primary text-white font-bold px-lg py-sm rounded-lg hover:opacity-90 transition-opacity flex items-center gap-sm shadow-sm">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span class="font-body-sm text-body-sm">Run Optimization</span>
+</button>
+</div>
+<!-- Bento Layout -->
+<div class="bento-grid">
+<!-- Tag Study Section -->
+<section class="col-span-8 glass-card rounded-xl p-lg">
+<div class="flex justify-between items-center mb-lg">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">tag</span>
+<h3 class="font-headline-md text-headline-md">Tag Study Analysis</h3>
+</div>
+<div class="flex gap-xs">
+<button class="px-md py-xs border border-outline-variant rounded-lg text-secondary font-label-md text-label-md hover:bg-surface-container">24H</button>
+<button class="px-md py-xs bg-primary text-white rounded-lg font-label-md text-label-md">7D</button>
+</div>
+</div>
+<div class="space-y-md">
+<div class="grid grid-cols-12 border-b border-outline-variant pb-sm font-label-md text-label-md text-secondary px-sm">
+<div class="col-span-4">TAG ENTITY</div>
+<div class="col-span-3">VOL SCORE</div>
+<div class="col-span-3">THERMAL STATE</div>
+<div class="col-span-2 text-right">ACTION</div>
+</div>
+<!-- Tag Row 1 -->
+<div class="grid grid-cols-12 items-center p-sm hover:bg-surface-container-low rounded-lg transition-colors group">
+<div class="col-span-4 flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+<span class="font-body-md text-body-md font-semibold text-primary">Quantum Computing</span>
+</div>
+<div class="col-span-3 flex items-center gap-xs">
+<span class="font-mono-label text-mono-label">88.4k</span>
+<div class="flex-1 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-indigo-500 h-full w-[85%]"></div>
+</div>
+</div>
+<div class="col-span-3">
+<span class="px-sm py-1 rounded-full text-xs font-bold thermal-badge-hot">Hot Trend</span>
+</div>
+<div class="col-span-2 text-right">
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+</div>
+<!-- Tag Row 2 -->
+<div class="grid grid-cols-12 items-center p-sm hover:bg-surface-container-low rounded-lg transition-colors group">
+<div class="col-span-4 flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-slate-400"></div>
+<span class="font-body-md text-body-md font-semibold text-primary">Generative UI</span>
+</div>
+<div class="col-span-3 flex items-center gap-xs">
+<span class="font-mono-label text-mono-label">42.1k</span>
+<div class="flex-1 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-slate-500 h-full w-[45%]"></div>
+</div>
+</div>
+<div class="col-span-3">
+<span class="px-sm py-1 rounded-full text-xs font-bold bg-secondary-container text-primary">Entity</span>
+</div>
+<div class="col-span-2 text-right">
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+</div>
+<!-- Tag Row 3 -->
+<div class="grid grid-cols-12 items-center p-sm hover:bg-surface-container-low rounded-lg transition-colors group">
+<div class="col-span-4 flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+<span class="font-body-md text-body-md font-semibold text-primary">SEO Automations</span>
+</div>
+<div class="col-span-3 flex items-center gap-xs">
+<span class="font-mono-label text-mono-label">156.9k</span>
+<div class="flex-1 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-indigo-500 h-full w-[95%]"></div>
+</div>
+</div>
+<div class="col-span-3">
+<span class="px-sm py-1 rounded-full text-xs font-bold thermal-badge-hot">Viral Spike</span>
+</div>
+<div class="col-span-2 text-right">
+<button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+</div>
+</div>
+</section>
+<!-- Discover Simulator -->
+<section class="col-span-4 glass-card rounded-xl p-lg flex flex-col items-center">
+<div class="w-full mb-lg">
+<h3 class="font-headline-md text-headline-md text-center">Discover Preview</h3>
+<p class="font-label-md text-label-md text-secondary text-center">Mobile Previsualization</p>
+</div>
+<!-- Mobile Chassis -->
+<div class="w-[280px] h-[540px] bg-white rounded-[3rem] border-[10px] border-primary-container relative overflow-hidden shadow-xl ring-4 ring-white">
+<div class="absolute top-0 w-full h-6 bg-transparent flex justify-center items-end pb-1 z-10">
+<div class="w-20 h-4 bg-primary-container rounded-b-xl"></div>
+</div>
+<div class="google-discover-feed h-full overflow-y-auto bg-surface px-md pt-10">
+<!-- Mock Discover Item 1 -->
+<div class="bg-white rounded-xl shadow-sm mb-md overflow-hidden border border-outline-variant">
+<img class="w-full h-32 object-cover" data-alt="A futuristic laboratory setting with blue and indigo lighting. Researchers are working with holographic data projections showing complex network nodes. The overall atmosphere is professional, clean, and high-tech, using the Corvus Nigrum color scheme of deep obsidian and crisp whites." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhM-uVIzdXYAEwnI2n6_ibfEYPf7ph_1uDPuxEh7OUFUa9Atm7NEjuMpfZ7sb6uD2OBfe2QRR3X61sQ8EfWxT3AZX_XB3-zrr78vTSkXrZY06Qr3TQHGBrkjSoaVgwaCJIsEwMNRKk0ArxoUamzh8OgByU_q3IEnf2TtuK_cdSN7Xy2fYuwGnehWuprRO3lDe-ypOYmUoUVk-kNdzvgXuoGyj6_OsUX-1uvXb7KApHNLN_W-aBdGWxUg"/>
+<div class="p-sm">
+<h4 class="font-body-sm text-body-sm font-bold line-clamp-2">How Quantum SEO is redefining Discover algorithms in 2024</h4>
+<div class="flex items-center gap-xs mt-xs">
+<div class="w-4 h-4 rounded-full bg-slate-200"></div>
+<span class="text-[10px] text-secondary">TechWire • 2h</span>
+</div>
+</div>
+</div>
+<!-- Mock Discover Item 2 -->
+<div class="bg-white rounded-xl shadow-sm mb-md overflow-hidden border border-outline-variant">
+<img class="w-full h-32 object-cover" data-alt="Abstract architectural photography of a modern minimalist building with sharp angles and dramatic shadows. The lighting is cold and precise, emphasizing the textures of steel and glass. The visual aesthetic is sophisticated and elite, representing the precision of high-end SEO analysis." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPfJawsDhHQWQv09slqo7FfnAN4WSsIvX5mFneKy5h_N-fZWN6Edv1OagaKAhZ2ESU0pr5EsUIL8WVwRsUtMH_duwb9XkZh5tUQWCSCbAa4Ih97HXlDvjbCcN4iMEWqWVk6itohKmR1L-TQ_3NJs-bwPZmeyg11Y9TKAS8VZwuEwtmdz3D6C5HM2vdOBh-eXYZRa64d3joApKN4W1h3HljNnOwTpPljE8aN3XFgW78A5gdfSUuPgmTsw"/>
+<div class="p-sm">
+<h4 class="font-body-sm text-body-sm font-bold line-clamp-2">Why Entity-Based indexing is the final boss of Google Search</h4>
+<div class="flex items-center gap-xs mt-xs">
+<div class="w-4 h-4 rounded-full bg-slate-200"></div>
+<span class="text-[10px] text-secondary">Search Engine Lab • 5h</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Pipe's Strategy Section -->
+<section class="col-span-12 glass-card rounded-xl p-lg grid grid-cols-3 gap-lg">
+<div class="col-span-1 border-r border-outline-variant pr-lg">
+<div class="flex items-center gap-sm mb-md">
+<div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-indigo-600">psychology</span>
+</div>
+<h3 class="font-headline-md text-headline-md">Pipe's Strategy</h3>
+</div>
+<p class="font-body-sm text-body-sm text-secondary mb-lg">
+                            Leveraging the 'Corvus Obsidian' method for recursive tag selection based on historical CTR spikes and semantic clusters.
+                        </p>
+<div class="space-y-sm">
+<div class="p-sm bg-surface-container rounded-lg border border-outline-variant">
+<p class="font-label-md text-label-md text-primary font-bold">Priority Cluster</p>
+<p class="font-body-sm text-body-sm text-secondary">Hyper-targeted local entities (94% Match)</p>
+</div>
+<div class="p-sm bg-surface-container rounded-lg border border-outline-variant">
+<p class="font-label-md text-label-md text-primary font-bold">Saturation Model</p>
+<p class="font-body-sm text-body-sm text-secondary">Medium-density semantic layering</p>
+</div>
+</div>
+</div>
+<div class="col-span-2 grid grid-cols-2 gap-lg">
+<div class="space-y-lg">
+<h4 class="font-body-md text-body-md font-bold text-primary border-b border-outline-variant pb-xs">Selection Logic</h4>
+<div class="relative pl-md border-l-2 border-indigo-500">
+<p class="font-body-sm text-body-sm text-secondary">Automated agent identifies high-potential 'orphan' keywords and bridges them to primary site entities using Corvus Nigrum logic.</p>
+</div>
+<div class="grid grid-cols-2 gap-sm">
+<div class="text-center p-md border border-outline-variant rounded-xl">
+<p class="font-headline-md text-headline-md text-indigo-600">82%</p>
+<p class="font-label-md text-label-md text-secondary">Conversion Lift</p>
+</div>
+<div class="text-center p-md border border-outline-variant rounded-xl">
+<p class="font-headline-md text-headline-md text-indigo-600">x4.5</p>
+<p class="font-label-md text-label-md text-secondary">Traffic Multiplier</p>
+</div>
+</div>
+</div>
+<div class="relative rounded-xl overflow-hidden bg-primary-container">
+
+<div class="relative z-10 p-lg h-full flex flex-col justify-between">
+<p class="font-label-md text-label-md text-indigo-300 uppercase tracking-widest">Active Intelligence</p>
+<div>
+<p class="text-white font-headline-md text-headline-md leading-tight mb-xs">Optimization Engine Running...</p>
+<div class="flex gap-1">
+<div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+<div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse delay-75"></div>
+<div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse delay-150"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Bottom Navigation Shell -->
+<nav class="fixed bottom-0 right-0 left-64 z-50 flex justify-center items-center gap-xl h-20 px-xl bg-surface-container-high border-t border-outline-variant shadow-lg">
+<div class="flex flex-col items-center justify-center text-secondary px-xl py-xs hover:bg-surface-variant transition-all rounded-xl cursor-pointer">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label-md text-label-md">Export DOCX</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-xl px-xl py-xs shadow-lg active:scale-95 duration-150 cursor-pointer">
+<span class="material-symbols-outlined">code</span>
+<span class="font-label-md text-label-md">Export HTML</span>
+</div>
+<div class="flex flex-col items-center justify-center text-secondary px-xl py-xs hover:bg-surface-variant transition-all rounded-xl cursor-pointer">
+<span class="material-symbols-outlined">publish</span>
+<span class="font-label-md text-label-md">CMS Publish</span>
+</div>
+</nav>
+</main>
+<script>
+        // Micro-interaction for tag rows
+        document.querySelectorAll('.grid.items-center.group').forEach(row => {
+            row.addEventListener('mousedown', () => {
+                row.style.transform = 'scale(0.99)';
+            });
+            row.addEventListener('mouseup', () => {
+                row.style.transform = 'scale(1)';
+            });
+        });
+
+        // Simple Discover scroll animation
+        const feed = document.querySelector('.google-discover-feed');
+        if(feed) {
+            let scrollDir = 1;
+            setInterval(() => {
+                feed.scrollBy({ top: scrollDir, behavior: 'smooth' });
+                if(feed.scrollTop + feed.clientHeight >= feed.scrollHeight) scrollDir = -1;
+                if(feed.scrollTop <= 0) scrollDir = 1;
+            }, 3000);
+        }
+    </script>
+</body></html>
