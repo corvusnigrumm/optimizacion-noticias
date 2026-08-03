@@ -56,7 +56,7 @@ class Valentina:
         if client == self.client:
             print("\n[Valentina] Generando respuesta: ", end="", flush=True)
             completion = client.chat.completions.create(
-                model="qwen/qwen3.6-27b",
+                model=model,
                 messages=[
                     {"role": "system", "content": self.system_instruction},
                     {"role": "user", "content": f"Texto de la noticia:\n\n{texto_crudo}"}
@@ -64,7 +64,6 @@ class Valentina:
                 temperature=0.6,
                 max_completion_tokens=2048,
                 top_p=0.95,
-                reasoning_effort="default",
                 stream=True,
                 stop=None
             )
@@ -102,32 +101,55 @@ class Valentina:
             print(f"[Valentina] ❌ Error decodificando JSON: {e}")
             return []
 
+    def _fallback_heuristico(self, texto_crudo):
+        """Genera negrillas por regla heurística cuando no hay API Key o falla el LLM."""
+        import re
+        lineas = [l.strip() for l in texto_crudo.split("\n") if l.strip()]
+        frases = []
+        for i, l_str in enumerate(lineas):
+            # 1. Extraer entidades, fechas, cifras y nombres propios
+            coincidencias = re.findall(r'([A-ZÁÉÍÓÚÑ][a-záéíóúüñ]{3,}(?:\s+[A-ZÁÉÍÓÚÑ0-9][a-záéíóúüñ0-9]*)*|\$\d+(?:\.\d+)?|\d+%\s*|\b\d{4}\b)', l_str)
+            for c in coincidencias:
+                c_clean = c.strip()
+                if len(c_clean) >= 4 and c_clean not in frases:
+                    frases.append(c_clean)
+            # 2. Si no hay suficientes coincidencias, tomar tramos de 4 a 7 palabras
+            if len(frases) < 4 and len(l_str.split()) >= 4:
+                palabras = l_str.split()
+                sub = " ".join(palabras[:min(7, len(palabras))])
+                if sub not in frases:
+                    frases.append(sub)
+        return frases[:14]
+
     def optimizar_texto(self, texto_crudo):
         print("[Valentina] ✍️ Identificando frases clave para resaltar...")
         try:
             frases = self._extraer_frases(self.client, self.model_name, texto_crudo)
+            if not frases:
+                frases = self._fallback_heuristico(texto_crudo)
             texto_optimizado = self._aplicar_negrillas(texto_crudo, frases)
             print(f"[Valentina] ✅ {len(frases)} negrillas aplicadas sobre el texto original.")
             return texto_optimizado
         except Exception as e:
-            if "RateLimitError" in type(e).__name__ or "429" in str(e):
-                print("[Valentina] ⚠️ Límite de Groq. Usando Hugging Face (Fallback)...")
-                try:
-                    frases = self._extraer_frases(
-                        self.hf_client,
-                        "meta-llama/Meta-Llama-3-8B-Instruct",
-                        texto_crudo,
-                        extra_kwargs={"max_tokens": 2000}
-                    )
-                    texto_optimizado = self._aplicar_negrillas(texto_crudo, frases)
-                    print(f"[Valentina] ✅ {len(frases)} negrillas aplicadas con HF.")
-                    return texto_optimizado
-                except Exception as e_hf:
-                    print(f"[Valentina] ❌ Error en Hugging Face: {e_hf}")
-                    return texto_crudo
-            else:
-                print(f"[Valentina] ❌ Error: {e}")
-                return texto_crudo
+            print(f"[Valentina] ⚠️ Excepción en API primaria: {e}. Intentando fallback HF...")
+            try:
+                frases = self._extraer_frases(
+                    self.hf_client,
+                    "meta-llama/Meta-Llama-3-8B-Instruct",
+                    texto_crudo,
+                    extra_kwargs={"max_tokens": 2000}
+                )
+                if not frases:
+                    frases = self._fallback_heuristico(texto_crudo)
+                texto_optimizado = self._aplicar_negrillas(texto_crudo, frases)
+                print(f"[Valentina] ✅ {len(frases)} negrillas aplicadas con HF.")
+                return texto_optimizado
+            except Exception as e_hf:
+                print(f"[Valentina] ⚠️ Error en HF ({e_hf}). Aplicando heurística local...")
+                frases = self._fallback_heuristico(texto_crudo)
+                texto_optimizado = self._aplicar_negrillas(texto_crudo, frases)
+                print(f"[Valentina] ✅ {len(frases)} negrillas aplicadas localmente.")
+                return texto_optimizado
 
     def run(self, texto, slug=None):
         """Método de compatibilidad con app_web."""

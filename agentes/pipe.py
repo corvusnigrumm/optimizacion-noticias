@@ -55,7 +55,7 @@ class Pipe:
         try:
             print("\n[Pipe] Generando keywords: ", end="", flush=True)
             completion = self.client.chat.completions.create(
-                model="qwen/qwen3.6-27b",
+                model=self.model_name,
                 messages=[
                     {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado con la llave 'keywords'."},
                     {"role": "user", "content": prompt}
@@ -63,7 +63,6 @@ class Pipe:
                 temperature=0.3,
                 max_completion_tokens=500,
                 top_p=0.95,
-                reasoning_effort="default",
                 response_format={"type": "json_object"},
                 stream=True,
                 stop=None
@@ -135,7 +134,7 @@ class Pipe:
         try:
             print("\n[Pipe] Generando candidatos: ", end="", flush=True)
             completion = self.client.chat.completions.create(
-                model="qwen/qwen3.6-27b",
+                model=self.model_name,
                 messages=[
                     {"role": "system", "content": self.system_instruction},
                     {"role": "user", "content": prompt}
@@ -143,7 +142,6 @@ class Pipe:
                 temperature=0.3,
                 max_completion_tokens=2048,
                 top_p=0.95,
-                reasoning_effort="default",
                 response_format={"type": "json_object"},
                 stream=True,
                 stop=None
@@ -170,24 +168,23 @@ class Pipe:
             except json.JSONDecodeError:
                 return []
         except Exception as e:
-            if "RateLimitError" in type(e).__name__ or "429" in str(e):
-                print("[Pipe] ⚠️ Rate limit Groq → usando Hugging Face para candidatos...")
-                try:
-                    response_hf = self.hf_client.chat.completions.create(
-                        model="Qwen/Qwen2.5-72B-Instruct",
-                        messages=[
-                            {"role": "system", "content": self.system_instruction},
-                            {"role": "user", "content": prompt}
-                        ],
-                        response_format={"type": "json_object"},
-                        max_tokens=1200
-                    )
-                    data = json.loads(response_hf.choices[0].message.content)
+            print(f"[Pipe] ⚠️ Excepción en API primaria ({e}) → Intentando Hugging Face...")
+            try:
+                response_hf = self.hf_client.chat.completions.create(
+                    model="meta-llama/Meta-Llama-3-8B-Instruct",
+                    messages=[
+                        {"role": "system", "content": self.system_instruction},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=1200
+                )
+                content_hf = response_hf.choices[0].message.content
+                match = re.search(r'\{[\s\S]*\}', content_hf)
+                if match:
+                    data = json.loads(match.group(0))
                     return self._normalizar_tags(data.get("tags", []))
-                except Exception as e_hf:
-                    print(f"[Pipe] ❌ Error HF generando candidatos: {e_hf}")
-            else:
-                print(f"[Pipe] ❌ Error LLM generando candidatos: {e}")
+            except Exception as e_hf:
+                print(f"[Pipe] ⚠️ Error en HF ({e_hf}). Usando lista de respaldo.")
         return []
 
     def generar_tags(self, resumen_texto, tendencias=None, camilo=None):

@@ -58,7 +58,7 @@ class ValentinaWord:
         print("\n[ValentinaWord] Analizando texto con molde editorial: ", end="", flush=True)
         try:
             completion = self.client.chat.completions.create(
-                model="qwen/qwen3.6-27b",
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": MOLDE_NEGRILLAS},
                     {"role": "user", "content": f"Texto de la noticia:\n\n{texto_crudo}"}
@@ -66,7 +66,6 @@ class ValentinaWord:
                 temperature=0.3,
                 max_completion_tokens=2048,
                 top_p=0.95,
-                reasoning_effort="default",
                 response_format={"type": "json_object"},
                 stream=True,
                 stop=None
