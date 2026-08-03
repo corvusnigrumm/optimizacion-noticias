@@ -3,8 +3,11 @@ import os
 import re
 import unicodedata
 
+from dotenv import load_dotenv
 from groq import Groq
 from huggingface_hub import InferenceClient
+
+load_dotenv()
 
 
 class Pipe:
@@ -17,7 +20,7 @@ class Pipe:
         "noticias", "noticia", "colombia", "actualidad", "última", "hora", "caso", "tema", "país",
     }
 
-    def __init__(self, model_name="qwen-2.5-32b"):
+    def __init__(self, model_name="llama-3.3-70b-versatile"):
         self.model_name = model_name
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY") or "dummy_key")
         self.hf_client = InferenceClient(api_key=os.getenv("HF_TOKEN") or None)
@@ -25,10 +28,13 @@ class Pipe:
 Lee el artículo completo y las consultas reales de Google Suggest. Devuelve EXCLUSIVAMENTE JSON:
 {"tags": ["tag 1", "tag 2"]}.
 
-Selecciona entre 4 y 10 tags de la lista de consultas de Google proporcionada; cópialos
-exactamente. Un tag debe estar respaldado por el artículo, describir su protagonista,
-hecho, lugar o tema específico, y servir para agrupar notas del mismo asunto. Descarta
-consultas que solo sean tendencia pero no pertenezcan a esta nota. No uses URL, slug,
+Propón entre 4 y 8 TAGS EDITORIALES CANÓNICOS de 1 a 4 palabras. Google Suggest es
+evidencia de interés, pero NUNCA copies consultas conversacionales, fragmentos de
+titulares o palabras de relleno como "antes", "explicación", "tiempo real" o
+"la SIC facilita". Escribe la entidad, persona, producto, hecho o asunto central:
+por ejemplo "Gemini", "Superintendencia de Industria y Comercio" o "protección de datos".
+Cada tag debe estar respaldado por el artículo y servir para agrupar notas del mismo
+asunto. Descarta señales populares sin relación con esta nota. No uses URL, slug,
 "Noticias Colombia", "Actualidad" ni "Última hora". No inventes nombres, cifras,
 relaciones ni hechos que el artículo no mencione."""
 
@@ -74,6 +80,18 @@ relaciones ni hechos que el artículo no mencione."""
             if len(resultado) >= limite:
                 break
         return resultado
+
+    def _es_tag_canonico(self, tag):
+        """Evita publicar consultas de Google como etiquetas de navegación."""
+        palabras = self._palabras_significativas(tag)
+        if not palabras:
+            return False
+        primero = self._normalizar(tag).split()[0]
+        if primero in {"el", "la", "los", "las", "un", "una", "como", "por", "para", "que"}:
+            return False
+        # Modificadores de consulta que no son entidades ni temas editoriales.
+        ruido = {"antes", "despues", "explicacion", "explica", "facilita", "tiempo", "real"}
+        return not any(palabra in ruido for palabra in palabras)
 
     def _semillas_del_texto(self, texto_crudo):
         """Extrae anclas temáticas del artículo para consultar Google sin usar su URL."""
@@ -129,31 +147,26 @@ relaciones ni hechos que el artículo no mencione."""
         return semillas or self._fallback_del_texto(texto_crudo)[:4]
 
     def generar_tags(self, texto_articulo, tendencias=None, camilo=None):
-        """Selecciona consultas reales de Google que además sean pertinentes a la nota."""
+        """Crea tags canónicos y usa Suggest como señal, nunca como texto final del tag."""
         tendencias = tendencias or []
         candidatos_google = self._normalizar_y_filtrar(tendencias, texto_articulo, limite=30)
         print(f"[Pipe] {len(candidatos_google)} consultas de Google Suggest pertinentes para evaluar.")
-        if candidatos_google:
-            prompt = (
-                f"ARTÍCULO COMPLETO:\n{texto_articulo}\n\n"
-                f"CONSULTAS REALES DE GOOGLE SUGGEST:\n{json.dumps(candidatos_google, ensure_ascii=False)}"
-            )
-            candidatos = self._llamar_llm(prompt)
-            # El modelo solo puede devolver consultas que Google Suggest entregó.
-            mapa_google = {self._normalizar(tag): tag for tag in candidatos_google}
-            candidatos = [mapa_google[self._normalizar(tag)] for tag in candidatos
-                           if isinstance(tag, str) and self._normalizar(tag) in mapa_google]
-        else:
-            candidatos = []
-        tags = self._normalizar_y_filtrar(candidatos, texto_articulo)
+        prompt = (
+            f"ARTÍCULO COMPLETO:\n{texto_articulo}\n\n"
+            f"SEÑALES REALES DE GOOGLE SUGGEST:\n{json.dumps(candidatos_google, ensure_ascii=False)}"
+        )
+        candidatos = self._llamar_llm(prompt)
+        tags = [tag for tag in self._normalizar_y_filtrar(candidatos, texto_articulo)
+                if self._es_tag_canonico(tag)]
         if not tags:
-            tags = candidatos_google[:10]
+            tags = [tag for tag in self._fallback_del_texto(texto_articulo)
+                    if self._es_tag_canonico(tag)]
         resultado = [{
             "tag": tag,
-            "tipo": "Google Suggest + relevancia editorial",
-            "justificacion": "Consulta real de Google Suggest validada contra el artículo",
+            "tipo": "Etiqueta editorial con señal Google",
+            "justificacion": "Etiqueta canónica validada contra el artículo y Google Suggest",
         } for tag in tags]
-        print(f"[Pipe] {len(resultado)} tags de Google Suggest pertinentes generados.")
+        print(f"[Pipe] {len(resultado)} tags editoriales con señal Google generados.")
         return resultado
 
     def run(self, texto, slug=None, tendencias=None):

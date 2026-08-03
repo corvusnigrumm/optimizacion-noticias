@@ -1,6 +1,9 @@
+from dotenv import load_dotenv
 from groq import Groq
 import os
 from huggingface_hub import InferenceClient
+
+load_dotenv()
 
 class Adriana:
     """
@@ -8,7 +11,7 @@ class Adriana:
     Recibe el trabajo de Valentina (texto optimizado) y Pipe (tags), 
     genera los H2s y ensambla el documento final en Markdown.
     """
-    def __init__(self, model_name="qwen-2.5-32b"):
+    def __init__(self, model_name="llama-3.3-70b-versatile"):
         self.model_name = model_name
         groq_key = os.getenv("GROQ_API_KEY") or "dummy_key"
         self.client = Groq(api_key=groq_key)

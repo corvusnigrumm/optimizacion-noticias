@@ -2,14 +2,17 @@ import json
 import os
 import re
 
+from dotenv import load_dotenv
 from groq import Groq
 from huggingface_hub import InferenceClient
+
+load_dotenv()
 
 
 class Valentina:
     """Selecciona negrillas editoriales sin alterar el artículo original."""
 
-    def __init__(self, model_name="qwen-2.5-32b"):
+    def __init__(self, model_name="llama-3.3-70b-versatile"):
         self.model_name = model_name
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY") or "dummy_key")
         self.hf_client = InferenceClient(api_key=os.getenv("HF_TOKEN") or None)
@@ -32,12 +35,16 @@ dos variantes de la misma idea. Copia exactamente el texto, sin inventar ni corr
     def _texto_normalizado(texto):
         return " ".join(texto.split()).casefold()
 
+    @staticmethod
+    def _objetivo_negrillas(texto):
+        return min(24, max(10, round(len(" ".join(texto.split()).split()) * 3.5 / 100)))
+
     def _filtrar_frases_editoriales(self, texto_crudo, frases):
         """Valida citas literales y conserva la densidad de negrillas del patrón editorial."""
         lineas = [linea.strip() for linea in texto_crudo.splitlines() if linea.strip()]
         titulo = lineas[0].casefold() if lineas else ""
         cuerpo = self._texto_normalizado(texto_crudo)
-        objetivo = min(24, max(10, round(len(cuerpo.split()) * 3.5 / 100)))
+        objetivo = self._objetivo_negrillas(texto_crudo)
         aceptadas, vistas = [], set()
         for frase in frases if isinstance(frases, list) else []:
             if not isinstance(frase, str):
@@ -77,7 +84,9 @@ dos variantes de la misma idea. Copia exactamente el texto, sin inventar ni corr
             completion = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": self.system_instruction},
-                          {"role": "user", "content": f"ARTÍCULO COMPLETO:\n{texto_crudo}"}],
+                          {"role": "user", "content":
+                           f"ARTÍCULO COMPLETO:\n{texto_crudo}\n\n"
+                           f"ENTREGA EXACTAMENTE {self._objetivo_negrillas(texto_crudo)} FRAGMENTOS."}],
                 temperature=0.2, max_completion_tokens=1200, response_format={"type": "json_object"},
             )
             content = completion.choices[0].message.content
@@ -85,7 +94,9 @@ dos variantes de la misma idea. Copia exactamente el texto, sin inventar ni corr
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "system", "content": self.system_instruction},
-                          {"role": "user", "content": f"ARTÍCULO COMPLETO:\n{texto_crudo}"}],
+                          {"role": "user", "content":
+                           f"ARTÍCULO COMPLETO:\n{texto_crudo}\n\n"
+                           f"ENTREGA EXACTAMENTE {self._objetivo_negrillas(texto_crudo)} FRAGMENTOS."}],
                 response_format={"type": "json_object"}, **kwargs,
             )
             content = response.choices[0].message.content
@@ -132,8 +143,13 @@ dos variantes de la misma idea. Copia exactamente el texto, sin inventar ni corr
             except Exception as hf_error:
                 print(f"[Valentina] Fallback remoto no disponible: {hf_error}")
                 frases = []
-        if not frases:
-            frases = self._fallback_heuristico(texto_crudo)
+        # Un modelo puede responder con pocas citas correctas. Se completa con el
+        # fallback editorial para alcanzar la densidad de lectura de la redacción.
+        objetivo = self._objetivo_negrillas(texto_crudo)
+        if len(frases) < objetivo:
+            frases = self._filtrar_frases_editoriales(
+                texto_crudo, frases + self._fallback_heuristico(texto_crudo)
+            )
         print(f"[Valentina] {len(frases)} negrillas editoriales aplicadas.")
         return self._aplicar_negrillas(texto_crudo, frases)
 
