@@ -75,6 +75,8 @@ class Camilo:
                             return clean
                 elif resp.status_code == 429:
                     continue
+            except Exception:
+                continue
         # Fallback a DuckDuckGo si Google bloquea la IP (429) en Data Centers como Render
         try:
             ddg_url = f"https://duckduckgo.com/ac/?q={requests.utils.quote(keyword)}&kl={self.country.lower()}-{self.lang}"
