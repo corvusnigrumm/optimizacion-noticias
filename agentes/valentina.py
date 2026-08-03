@@ -13,46 +13,54 @@ class Valentina:
         self.model_name = model_name
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY") or "dummy_key")
         self.hf_client = InferenceClient(api_key=os.getenv("HF_TOKEN") or None)
-        self.system_instruction = """Eres una editora de noticias colombianas. Lee el artículo completo y devuelve
-EXCLUSIVAMENTE JSON: {"frases": ["cita literal", ...]}.
+        self.system_instruction = """Eres la editora de estilo de un medio colombiano. Lee el artículo completo
+y devuelve EXCLUSIVAMENTE JSON: {"frases": ["cita literal", ...]}.
 
-Cada cita debe copiarse literalmente del cuerpo de la noticia. Selecciona de 4 a 8,
-solo si mejora la lectura rápida: datos verificables, consecuencias, decisiones,
-declaraciones atribuidas o contexto indispensable. Una negrilla debe entenderse por sí
-misma y tener entre 4 y 22 palabras. No uses el título, subtítulos, créditos, autor,
-fechas aisladas, frases de transición, ni fragmentos genéricos. La calidad es más
-importante que la cantidad: si el texto no justifica una frase, no la incluyas."""
+Las negrillas deben reproducir un patrón editorial de noticias de servicio: cerca de
+3 o 4 por cada 100 palabras. Elige fragmentos LITERALES de 4 a 16 palabras (pueden ser
+fragmentos, no tienen que ser oraciones completas). Si el primer renglón es el titular,
+inclúyelo. Incluye todos los subtítulos o preguntas que organizan la nota y, en cada
+sección, resalta el concepto que permite leerla rápido: problema, mecanismo, condición,
+paso, resultado, beneficio, advertencia o cifra.
+
+Una buena selección cubre el recorrido de la nota —qué es, cómo funciona, qué hacer y
+qué precaución tomar—, no una lista de palabras SEO. No resaltes conectores, adjetivos
+vacíos, sujetos genéricos, fechas aisladas, autor, créditos, cierre institucional ni
+dos variantes de la misma idea. Copia exactamente el texto, sin inventar ni corregir."""
 
     @staticmethod
     def _texto_normalizado(texto):
         return " ".join(texto.split()).casefold()
 
     def _filtrar_frases_editoriales(self, texto_crudo, frases):
-        """Protege el resultado ante citas inventadas, vagas o repetidas del modelo."""
+        """Valida citas literales y conserva la densidad de negrillas del patrón editorial."""
         lineas = [linea.strip() for linea in texto_crudo.splitlines() if linea.strip()]
         titulo = lineas[0].casefold() if lineas else ""
         cuerpo = self._texto_normalizado(texto_crudo)
+        objetivo = min(24, max(10, round(len(cuerpo.split()) * 3.5 / 100)))
         aceptadas, vistas = [], set()
         for frase in frases if isinstance(frases, list) else []:
             if not isinstance(frase, str):
                 continue
             frase = " ".join(frase.split()).strip(" .,:;-")
             clave, palabras = frase.casefold(), frase.split()
-            if (len(palabras) < 4 or len(palabras) > 22 or clave == titulo or
-                    clave in vistas or clave not in cuerpo):
+            es_titular = clave == titulo and len(palabras) >= 6
+            if (len(palabras) < 3 or len(palabras) > 18 or clave in vistas or
+                    clave not in cuerpo):
                 continue
-            tiene_dato = bool(re.search(r"\d|%|\$|\b(?:mil|millones|años|meses)\b", frase, re.I))
-            tiene_entidad = bool(re.search(r"\b[A-ZÁÉÍÓÚÑ][a-záéíóúüñ]{2,}", frase))
-            tiene_hecho = bool(re.search(
-                r"\b(?:anunci\w*|confirm\w*|inform\w*|explic\w*|advirti\w*|"
-                r"report\w*|hall\w*|aument\w*|reduc\w*|orden\w*|aprob\w*)", frase, re.I))
-            if not (tiene_dato or tiene_entidad or tiene_hecho):
+            palabras_utiles = re.findall(r"[a-záéíóúüñ]{3,}", clave)
+            # Evita marcar restos gramaticales como "en la casa" o "para funcionar".
+            if not es_titular and len(set(palabras_utiles) - {
+                "para", "como", "esta", "este", "desde", "hasta", "sobre", "entre",
+                "tambien", "porque", "cuando", "donde", "todos", "todas", "puede",
+                "pueden", "ser", "hacer", "tener", "suele", "solo", "casa",
+            }) < 2:
                 continue
             if any(clave in previa or previa in clave for previa in vistas):
                 continue
             vistas.add(clave)
             aceptadas.append(frase)
-            if len(aceptadas) >= 8:
+            if len(aceptadas) >= objetivo:
                 break
         return aceptadas
 
@@ -87,11 +95,29 @@ importante que la cantidad: si el texto no justifica una frase, no la incluyas."
             return []
 
     def _fallback_heuristico(self, texto_crudo):
-        """Fallback conservador: resalta oraciones completas con información comprobable."""
+        """Fallback por fragmentos: conserva conceptos y acciones, no oraciones enteras."""
         candidatas = []
         lineas = [linea.strip() for linea in texto_crudo.splitlines() if linea.strip()]
-        for linea in lineas[1:]:  # el primer renglón suele ser el título
-            candidatas.extend(re.split(r"(?<=[.!?])\s+", linea))
+        if lineas and len(lineas[0].split()) >= 6:
+            candidatas.append(lineas[0])
+        for linea in lineas[1:]:
+            if len(linea.split()) <= 12 and (linea.endswith(":") or linea.endswith("?")):
+                candidatas.append(linea)
+            for oracion in re.split(r"(?<=[.!?])\s+", linea):
+                palabras = oracion.strip().split()
+                if not 5 <= len(palabras) <= 40:
+                    continue
+                # Ventanas cortas alrededor de cifras, verbos de acción y el inicio factual.
+                puntos = [0]
+                for indice, palabra in enumerate(palabras):
+                    if (re.search(r"\d", palabra) or re.search(
+                            r"(recom|evit|util|permit|ayud|reduce|aument|protege|sirve|debe)",
+                            palabra, re.I)):
+                        puntos.append(max(0, indice - 3))
+                for inicio in puntos:
+                    fragmento = " ".join(palabras[inicio:inicio + 11]).strip(" ,;:")
+                    if len(fragmento.split()) >= 4:
+                        candidatas.append(fragmento)
         return self._filtrar_frases_editoriales(texto_crudo, candidatas)
 
     def optimizar_texto(self, texto_crudo):

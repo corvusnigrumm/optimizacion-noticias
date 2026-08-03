@@ -55,18 +55,30 @@ def _run_agentes(texto: str, slug: str) -> dict:
     sys.stdout = _log_capture
     resultado = {}
     try:
+        from agentes.camilo import Camilo
         from agentes.pipe import Pipe
         from agentes.valentina import Valentina
         from agentes.adriana import Adriana
         import random, re
 
+        camilo  = Camilo()
         pipe    = Pipe()
         val     = Valentina()
         adriana = Adriana()
 
         # PASO 1 — Pipe lee la nota íntegra: ni el slug ni la URL intervienen en los tags.
         print("[Pipe] 🏷️ Generando tags desde el contenido completo del artículo...")
-        tags_raw = pipe.generar_tags(texto)
+        print("[Pipe] Extrayendo semillas temáticas del artículo...")
+        keywords = pipe.extraer_keywords_principales(texto)
+        print("[Camilo] Consultando Google Suggest...")
+        sugerencias_google = camilo.investigar_tendencias(keywords)
+        print("[Pipe] Seleccionando tags pertinentes de Google Suggest...")
+        tags_raw = pipe.generar_tags(texto, sugerencias_google)
+        print("[Camilo] Midiendo interés relativo en Google Trends...")
+        ranking_trends = camilo.rankear_tags_por_volumen(
+            [item["tag"] for item in tags_raw if isinstance(item, dict) and item.get("tag")]
+        )
+        ranking_por_tag = {item["tag"].casefold(): item for item in ranking_trends}
 
         # PASO 2 — Valentina aplica negrillas editoriales
         print("[Valentina] ✍️ Aplicando negrillas editoriales...")
@@ -92,10 +104,11 @@ def _run_agentes(texto: str, slug: str) -> dict:
             else:
                 continue
             if tag_name:
+                tendencia = ranking_por_tag.get(tag_name.casefold(), {})
                 tags_procesados.append({
                     "tag": tag_name,
-                    "score": random.randint(68, 98),
-                    "estado": tipo
+                    "score": tendencia.get("score", 0),
+                    "estado": tendencia.get("fuente") or tipo
                 })
 
         # Fallback de tags: extraer entidades del texto si no hay tags

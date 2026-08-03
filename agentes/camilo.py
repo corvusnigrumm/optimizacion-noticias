@@ -112,6 +112,7 @@ class Camilo:
         print(f"[Camilo] 📊 Midiendo volumen real de {len(tags_candidatos)} tags candidatos con pytrends (CO)...")
 
         scores = {}
+        medidos = set()
         BATCH = 5
         lotes = [tags_candidatos[i:i+BATCH] for i in range(0, len(tags_candidatos), BATCH)]
 
@@ -128,6 +129,7 @@ class Camilo:
                     for tag in lote:
                         if tag in cols:
                             scores[tag] = int(df[tag].mean())
+                            medidos.add(tag)
                         else:
                             scores[tag] = 0
 
@@ -145,7 +147,8 @@ class Camilo:
                     scores[tag] = 0
 
         resultado = sorted(
-            [{"tag": t, "score": scores.get(t, 0), "fuente": "Google Trends (7 días, CO)"}
+            [{"tag": t, "score": scores.get(t, 0),
+              "fuente": "Google Trends (7 días, CO)" if t in medidos else "Google Trends sin datos"}
              for t in tags_candidatos],
             key=lambda x: x["score"],
             reverse=True
@@ -188,11 +191,8 @@ class Camilo:
         if total > 0:
             print(f"[Camilo] \u2705 Total acumulado Suggest: {total} sugerencias.")
         
-        # Añadir las tendencias en caliente del RSS
-        rss_tendencias = self._obtener_tendencias_rss()
-        if rss_tendencias:
-            print(f"[Camilo] \U0001f525 Añadidas {len(rss_tendencias)} tendencias diarias de Google Trends.")
-            todas_las_sugerencias.extend(rss_tendencias)
+        # No se añaden tendencias globales del RSS: pueden ser populares, pero no
+        # prueban relación con la nota. Trends medirá los candidatos de Suggest.
 
         return todas_las_sugerencias
 
@@ -204,4 +204,3 @@ class Camilo:
         return {"texto": texto, "tags": sugerencias, "sugerencias": sugerencias}
 
 CamiloAgent = Camilo
-

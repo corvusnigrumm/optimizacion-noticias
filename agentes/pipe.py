@@ -8,7 +8,7 @@ from huggingface_hub import InferenceClient
 
 
 class Pipe:
-    """Genera tags a partir de la lectura del artículo, no de su URL ni de tendencias ajenas."""
+    """Cruza el contenido editorial con Google Suggest y Google Trends."""
 
     STOPWORDS = {
         "a", "al", "ante", "con", "contra", "de", "del", "desde", "el", "en", "entre", "es",
@@ -22,15 +22,15 @@ class Pipe:
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY") or "dummy_key")
         self.hf_client = InferenceClient(api_key=os.getenv("HF_TOKEN") or None)
         self.system_instruction = """Eres el responsable de etiquetas de un medio colombiano.
-Lee el artículo completo antes de etiquetarlo. Devuelve EXCLUSIVAMENTE JSON:
+Lee el artículo completo y las consultas reales de Google Suggest. Devuelve EXCLUSIVAMENTE JSON:
 {"tags": ["tag 1", "tag 2"]}.
 
-Propón de 4 a 10 tags editoriales concretos: protagonista/entidad, evento o decisión,
-lugar cuando sea central, tema específico y concepto de servicio si aplica. Cada tag
-debe tener de 1 a 5 palabras, estar respaldado por el texto y servir para agrupar esta
-nota con otras del mismo asunto. No uses la URL, el slug, tendencias del día, frases de
-autocompletado ni tags genéricos como "Noticias Colombia", "Actualidad" o "Última hora".
-No inventes nombres, cifras, relaciones ni hechos que el artículo no mencione."""
+Selecciona entre 4 y 10 tags de la lista de consultas de Google proporcionada; cópialos
+exactamente. Un tag debe estar respaldado por el artículo, describir su protagonista,
+hecho, lugar o tema específico, y servir para agrupar notas del mismo asunto. Descarta
+consultas que solo sean tendencia pero no pertenezcan a esta nota. No uses URL, slug,
+"Noticias Colombia", "Actualidad" ni "Última hora". No inventes nombres, cifras,
+relaciones ni hechos que el artículo no mencione."""
 
     @staticmethod
     def _normalizar(texto):
@@ -52,7 +52,11 @@ No inventes nombres, cifras, relaciones ni hechos que el artículo no mencione."
         if not tokens or all(token in self.STOPWORDS for token in tokens):
             return False
         # Un tag debe poder justificarse al leer el artículo, no solo sonar relacionado.
-        return sum(token in texto_tokens for token in tokens) / len(tokens) >= 0.6
+        # Se toleran flexiones normales: "ampliación" / "ampliará".
+        def aparece(token):
+            return any(token == palabra or (len(token) >= 5 and token[:5] == palabra[:5])
+                       for palabra in texto_tokens)
+        return sum(aparece(token) for token in tokens) / len(tokens) >= 0.6
 
     def _normalizar_y_filtrar(self, tags, texto, limite=10):
         resultado, vistos = [], set()
@@ -70,6 +74,19 @@ No inventes nombres, cifras, relaciones ni hechos que el artículo no mencione."
             if len(resultado) >= limite:
                 break
         return resultado
+
+    def _semillas_del_texto(self, texto_crudo):
+        """Extrae anclas temáticas del artículo para consultar Google sin usar su URL."""
+        candidatos = []
+        candidatos.extend(re.findall(
+            r"\b[A-ZÁÉÍÓÚÑ][\wáéíóúüñ]+(?:\s+[A-ZÁÉÍÓÚÑ][\wáéíóúüñ]+){1,3}\b", texto_crudo
+        ))
+        palabras = self._palabras_significativas(texto_crudo)
+        frecuencias = {}
+        for palabra in palabras:
+            frecuencias[palabra] = frecuencias.get(palabra, 0) + 1
+        candidatos.extend([p for p, _ in sorted(frecuencias.items(), key=lambda item: (-item[1], item[0]))])
+        return self._normalizar_y_filtrar(candidatos, texto_crudo, limite=4)
 
     def _llamar_llm(self, prompt):
         try:
@@ -107,22 +124,36 @@ No inventes nombres, cifras, relaciones ni hechos que el artículo no mencione."
         return self._normalizar_y_filtrar(candidatos, texto, limite=8)
 
     def extraer_keywords_principales(self, texto_crudo):
-        """Compatibilidad con Camilo: semillas extraídas del texto, sin fallback temático fijo."""
-        return self._fallback_del_texto(texto_crudo)[:4]
+        """Semillas para Google Suggest obtenidas exclusivamente del contenido."""
+        semillas = self._semillas_del_texto(texto_crudo)
+        return semillas or self._fallback_del_texto(texto_crudo)[:4]
 
     def generar_tags(self, texto_articulo, tendencias=None, camilo=None):
-        """Etiqueta desde el artículo completo; ``tendencias`` es deliberadamente secundario."""
-        print("[Pipe] Leyendo el artículo completo para generar tags editoriales...")
-        candidatos = self._llamar_llm(f"ARTÍCULO COMPLETO:\n{texto_articulo}")
+        """Selecciona consultas reales de Google que además sean pertinentes a la nota."""
+        tendencias = tendencias or []
+        candidatos_google = self._normalizar_y_filtrar(tendencias, texto_articulo, limite=30)
+        print(f"[Pipe] {len(candidatos_google)} consultas de Google Suggest pertinentes para evaluar.")
+        if candidatos_google:
+            prompt = (
+                f"ARTÍCULO COMPLETO:\n{texto_articulo}\n\n"
+                f"CONSULTAS REALES DE GOOGLE SUGGEST:\n{json.dumps(candidatos_google, ensure_ascii=False)}"
+            )
+            candidatos = self._llamar_llm(prompt)
+            # El modelo solo puede devolver consultas que Google Suggest entregó.
+            mapa_google = {self._normalizar(tag): tag for tag in candidatos_google}
+            candidatos = [mapa_google[self._normalizar(tag)] for tag in candidatos
+                           if isinstance(tag, str) and self._normalizar(tag) in mapa_google]
+        else:
+            candidatos = []
         tags = self._normalizar_y_filtrar(candidatos, texto_articulo)
         if not tags:
-            tags = self._fallback_del_texto(texto_articulo)
+            tags = candidatos_google[:10]
         resultado = [{
             "tag": tag,
-            "tipo": "Etiqueta editorial",
-            "justificacion": "Etiqueta validada contra el contenido del artículo",
+            "tipo": "Google Suggest + relevancia editorial",
+            "justificacion": "Consulta real de Google Suggest validada contra el artículo",
         } for tag in tags]
-        print(f"[Pipe] {len(resultado)} tags pertinentes generados.")
+        print(f"[Pipe] {len(resultado)} tags de Google Suggest pertinentes generados.")
         return resultado
 
     def run(self, texto, slug=None, tendencias=None):
