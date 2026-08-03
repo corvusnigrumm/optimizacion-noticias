@@ -75,8 +75,20 @@ class Camilo:
                             return clean
                 elif resp.status_code == 429:
                     continue
-            except Exception:
-                continue
+        # Fallback a DuckDuckGo si Google bloquea la IP (429) en Data Centers como Render
+        try:
+            ddg_url = f"https://duckduckgo.com/ac/?q={requests.utils.quote(keyword)}&kl={self.country.lower()}-{self.lang}"
+            ddg_headers = {"User-Agent": random.choice(USER_AGENT_PROFILES)["ua"]}
+            res = self.session.get(ddg_url, headers=ddg_headers, timeout=8)
+            if res.status_code == 200:
+                data = res.json()
+                extracted = [item.get('phrase') for item in data if isinstance(item, dict) and item.get('phrase')]
+                if extracted:
+                    print(f"[Camilo] 🦆 Usando fallback de DuckDuckGo para '{keyword}' (Google bloqueado)")
+                    return extracted
+        except Exception:
+            pass
+
         return []
 
     def _obtener_tendencias_rss(self):
