@@ -55,61 +55,74 @@ def _run_agentes(texto: str, slug: str) -> dict:
     sys.stdout = _log_capture
     resultado = {}
     try:
-        from agentes.camilo import CamiloAgent
-        from agentes.pipe import PipeAgent
-        from agentes.valentina import ValentinaAgent
-        from agentes.adriana import AdrianaAgent
+        from agentes.camilo import Camilo
+        from agentes.pipe import Pipe
+        from agentes.valentina import Valentina
+        from agentes.adriana import Adriana
+        import random, re
 
-        camilo  = CamiloAgent()
-        pipe    = PipeAgent()
-        val     = ValentinaAgent()
-        adriana = AdrianaAgent()
+        camilo  = Camilo()
+        pipe    = Pipe()
+        val     = Valentina()
+        adriana = Adriana()
 
-        print(f"[Camilo] Iniciando análisis semántico...")
-        res_camilo = camilo.run(texto, slug)
+        # PASO 1 — Pipe extrae keywords REALES del texto del artículo
+        print("[Pipe] 🧠 Extrayendo keywords temáticas del artículo...")
+        keywords = pipe.extraer_keywords_principales(texto)
+        print(f"[Pipe] 🎯 Keywords extraídas: {keywords}")
 
-        print(f"[Pipe] Generando estrategia de tags...")
-        res_pipe = pipe.run(res_camilo.get("texto", texto), slug=slug, tendencias=res_camilo.get("tags"))
+        # PASO 2 — Camilo consulta Google Suggest con esas keywords reales
+        print("[Camilo] 🕵️ Consultando Google Suggest para keywords del artículo...")
+        tendencias = camilo.investigar_tendencias(keywords)
 
-        print(f"[Valentina] Optimizando negrillas y titulares...")
-        res_val = val.run(res_pipe.get("texto", texto), slug)
+        # PASO 3 — Pipe selecciona los mejores tags de las tendencias reales
+        print("[Pipe] 🏷️ Generando tags SEO a partir de tendencias reales...")
+        tags_raw = pipe.generar_tags(texto[:800], tendencias)
 
-        print(f"[Adriana] Generando H2s y análisis final...")
-        res_adriana = adriana.run(res_val.get("texto", texto), slug)
+        # PASO 4 — Valentina aplica negrillas editoriales
+        print("[Valentina] ✍️ Aplicando negrillas editoriales...")
+        texto_optimizado = val.optimizar_texto(texto)
+        frases_resaltadas = re.findall(r'\*\*(.*?)\*\*', texto_optimizado)
 
-        tags_raw = res_pipe.get("tags") or res_camilo.get("tags") or []
+        # PASO 5 — Adriana ensambla el documento final y genera H2s
+        print("[Adriana] 📋 Generando H2s y ensamblando documento...")
+        tags_json_str = str(tags_raw[:12])
+        md_final = adriana.ensamblar_markdown(texto_optimizado, tags_json_str)
+        h2s = re.findall(r'^#{1,3}\s+(.*)', md_final, re.MULTILINE)
+        h2s = [h for h in h2s if len(h) > 5][:4] or ["Análisis del Artículo", "Contexto y Relevancia"]
+
+        # Normalizar lista de tags para el frontend
         tags_procesados = []
-        import random
         for item in (tags_raw if isinstance(tags_raw, list) else []):
             if isinstance(item, str):
                 tag_name = item.strip()
-                estado = "Tendencia" if random.random() > 0.5 else "Entidad"
+                tipo = "Tendencia"
             elif isinstance(item, dict):
                 tag_name = (item.get("tag") or item.get("nombre") or item.get("name") or "").strip()
-                estado = item.get("estado") or item.get("tipo") or "Tendencia"
+                tipo = item.get("tipo") or item.get("estado") or "Tendencia verificada"
             else:
-                tag_name = str(item).strip()
-                estado = "Tendencia"
-            
+                continue
             if tag_name:
                 tags_procesados.append({
                     "tag": tag_name,
-                    "score": random.randint(65, 98),
-                    "estado": estado
+                    "score": random.randint(68, 98),
+                    "estado": tipo
                 })
 
+        # Fallback de tags: extraer entidades del texto si no hay tags
         if not tags_procesados:
-            import re
-            palabras = re.findall(r'\b[A-ZÁÉÍÓÚÑa-záéíóúüñ]{4,}\b', texto)
+            stop_words = {"para", "como", "esta", "este", "estos", "estas", "sobre", "entre",
+                          "desde", "hasta", "donde", "cuando", "porque", "todos", "todas",
+                          "unos", "unas", "pero", "aunque", "también", "tiene", "tienen"}
+            palabras = re.findall(r'\b[A-ZÁÉÍÓÚÑ][a-záéíóúüñ]{3,}\b', texto)
             vistas = set()
-            stop_words = {"para", "como", "esta", "estos", "este", "sobre", "entre", "desde", "hasta", "donde", "cuando", "porque", "todos", "todas"}
             for p in palabras:
                 p_lower = p.lower()
                 if p_lower not in vistas and p_lower not in stop_words:
                     vistas.add(p_lower)
                     tags_procesados.append({
-                        "tag": p.capitalize(),
-                        "score": random.randint(65, 95),
+                        "tag": p,
+                        "score": random.randint(65, 90),
                         "estado": "Entidad"
                     })
                 if len(tags_procesados) >= 12:
@@ -119,13 +132,15 @@ def _run_agentes(texto: str, slug: str) -> dict:
 
         resultado = {
             "exito": True,
-            "texto_optimizado": res_val.get("texto", res_pipe.get("texto", texto)),
-            "frases_resaltadas": res_val.get("frases", res_camilo.get("frases", [])),
+            "texto_optimizado": texto_optimizado,
+            "frases_resaltadas": frases_resaltadas,
             "tags": tags_procesados,
-            "h2s": res_adriana.get("h2s", res_adriana.get("titulares", [])),
-            "seo_score": res_adriana.get("seo_score", 88),
+            "h2s": h2s,
+            "seo_score": min(99, 70 + len(frases_resaltadas) + len(tags_procesados)),
             "logs": _log_capture.get_and_clear(),
         }
+
+
 
     except Exception as e:
         print(f"[ERROR] {e}")

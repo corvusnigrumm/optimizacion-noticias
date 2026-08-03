@@ -90,32 +90,67 @@ class Pipe:
                 keywords = fallback
                 
             if not isinstance(keywords, list) or len(keywords) == 0:
-                keywords = fallback
+                keywords = self._keywords_del_texto(texto_crudo)
             print(f"[Pipe] 🎯 Keywords temáticas extraídas: {keywords}")
             return keywords
         except Exception as e:
-            if "RateLimitError" in type(e).__name__ or "429" in str(e):
-                print("[Pipe] ⚠️ Límite de Groq. Usando Hugging Face (Fallback)...")
-                try:
-                    response_hf = self.hf_client.chat.completions.create(
-                        model="Qwen/Qwen2.5-72B-Instruct",
-                        messages=[
-                            {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado."},
-                            {"role": "user", "content": prompt}
-                        ],
-                        response_format={"type": "json_object"},
-                        max_tokens=150
-                    )
-                    data = json.loads(response_hf.choices[0].message.content)
-                    keywords = data.get("keywords", fallback)
+            print(f"[Pipe] ⚠️ Error extrayendo keywords via LLM ({e}). Usando extracción local del texto...")
+            try:
+                response_hf = self.hf_client.chat.completions.create(
+                    model="Qwen/Qwen2.5-72B-Instruct",
+                    messages=[
+                        {"role": "system", "content": "Responde única y exclusivamente con el JSON solicitado."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response_format={"type": "json_object"},
+                    max_tokens=150
+                )
+                data = json.loads(response_hf.choices[0].message.content)
+                keywords = data.get("keywords", [])
+                if keywords:
                     print(f"[Pipe] 🎯 Keywords extraídas con HF: {keywords}")
                     return keywords
-                except Exception as e_hf:
-                    print(f"[Pipe] ❌ Error extrayendo keywords con HF: {e_hf}")
-                    return fallback
-            else:
-                print(f"[Pipe] ❌ Error extrayendo keywords: {e}")
-                return fallback
+            except Exception as e_hf:
+                print(f"[Pipe] ⚠️ HF también falló: {e_hf}")
+            return self._keywords_del_texto(texto_crudo)
+
+    def _keywords_del_texto(self, texto_crudo):
+        """Extrae keywords del texto del artículo sin depender de LLM."""
+        import re
+        # Extraer frases nominales (nombres propios + palabras clave)
+        stop_words = {"para", "como", "esta", "este", "estos", "estas", "pero", "aunque",
+                      "también", "tiene", "según", "sobre", "entre", "desde", "hasta",
+                      "donde", "cuando", "porque", "todos", "todas", "unos", "unas",
+                      "dice", "dijo", "será", "será", "años", "país", "caso", "hace"}
+        # Priorizar nombres propios y entidades (palabras en mayúscula)
+        entidades = re.findall(r'\b[A-ZÁÉÍÓÚÑ][a-záéíóúüñ]{3,}(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúüñ]{2,})*\b', texto_crudo)
+        keywords = []
+        vistas = set()
+        for e in entidades:
+            e_lower = e.lower()
+            if e_lower not in stop_words and e_lower not in vistas and len(e.split()) <= 3:
+                vistas.add(e_lower)
+                keywords.append(e)
+            if len(keywords) >= 4:
+                break
+        # Complementar con palabras clave frecuentes si no hay suficientes entidades
+        if len(keywords) < 4:
+            palabras = re.findall(r'\b[a-záéíóúüñ]{5,}\b', texto_crudo.lower())
+            freq = {}
+            for p in palabras:
+                if p not in stop_words:
+                    freq[p] = freq.get(p, 0) + 1
+            top = sorted(freq.items(), key=lambda x: x[1], reverse=True)
+            for palabra, _ in top:
+                if palabra not in vistas:
+                    vistas.add(palabra)
+                    keywords.append(palabra)
+                if len(keywords) >= 4:
+                    break
+        print(f"[Pipe] 📝 Keywords extraídas localmente del texto: {keywords}")
+        return keywords or ["noticias colombia"]
+
+
 
     def _normalizar_tags(self, raw):
         """Convierte la respuesta del LLM (lista de strings o lista de dicts) a lista de strings."""
